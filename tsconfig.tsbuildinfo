@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/db.ts","./src/engine.ts","./src/lib.ts","./src/main.tsx","./src/supabase.ts","./src/vite-env.d.ts","./src/components/GroupMaker.tsx","./src/components/Hub.tsx","./src/components/Planner.tsx","./src/components/Setup.tsx","./src/components/Tools.tsx"],"version":"5.9.3"}

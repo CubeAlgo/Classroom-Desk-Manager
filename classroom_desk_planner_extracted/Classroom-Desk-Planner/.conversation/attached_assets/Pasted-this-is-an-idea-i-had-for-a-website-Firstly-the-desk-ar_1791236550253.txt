@@ -1,0 +1,25 @@
+this is an idea i had for a website
+Firstly the desk arrangements (weird class arrangements like cs or ce room wont work):
+
+We can have 2 seats together
+We can have 5
+
+These are the most popular/common so we will just stick with these.
+Now for the parameters: we should first seat the students who can’t see very well.
+Then account for loud/quiet students or who may not pay attention in class.
+We can also have the teachers move the students around after giving them an arrangement for `a final decision on their half.
+Have a general class layout and an option bar to select the seating option, a nice panel to set up parameters.
+Alright now instead of dropping kids into who cant see or loud or whatever, we can add a scale for the students (low/medium/high) for everything.
+
+Ok so an interesting idea is so forget the arrangement right now. So right now putting students in seats is quite difficult. We can instead first do visibility based on low medium and high, then the teacher can take a look at the arrangement and decide who’s seat is good and lock them in place (based on their own intuition) so when the code runs again for the other two or more parameters the students who are locked cannot be moved. 
+The code can then at the very end (finishing last parameter) make a few arrangements and give a score based on the seatings. And from this teachers have few options and scores available on what the computer thinks is good, finally the teacher makes a judgment call and decides the arrangement. 
+
+Second thing with do not put these students together: teachers have two options: DONT PUT TOGETHER and try not to put together. This way the computer can have some leeway in coming up w the arrangement. 
+
+So the best thing is
+Visibility
+Behaviour
+Who can't or shouldn't really sit with another person
+Layout: 2s or group of 5
+
+Then we need to make sure every student has a seat, we may have 24 students so we have 5 4 groups of 5 and 1 group of 4 or we can have say 27 students so we have 2 groups of 6 and 3 groups of 5 and finally if its like 28 then like 2 groups of 4 and 4 groups of 5.

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Desk Planner</title>
+<style>
+:root{
+  --bg:#f6f4ee; --panel:#ffffff; --ink:#23281f; --muted:#767c6f;
+  --line:#e4e0d4; --accent:#2f6f5e; --accent-dark:#234f43; --accent-soft:#e6efec;
+  --amber:#b9812c; --red:#b3463c; --green:#2f6f5e;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#191c17; --panel:#21251e; --ink:#eceae2; --muted:#9a9f8f;
+    --line:#333727; --accent:#6fb09c; --accent-dark:#8fc7b5; --accent-soft:#2a3630;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#191c17; --panel:#21251e; --ink:#eceae2; --muted:#9a9f8f;
+  --line:#333727; --accent:#6fb09c; --accent-dark:#8fc7b5; --accent-soft:#2a3630;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Iowan Old Style","Georgia",ui-serif,serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.ui{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;}
+button,input,select{font:inherit}
+button{cursor:pointer}
+
+header{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  background:var(--panel); border-bottom:1px solid var(--line);
+  padding:14px 22px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+}
+.brand{font-size:21px; font-weight:600; letter-spacing:-.01em}
+.brand span{color:var(--accent)}
+.hdr-actions{display:flex; gap:8px}
+.btn{
+  font-family:ui-sans-serif,system-ui,sans-serif; border:1px solid var(--line); border-radius:8px;
+  padding:9px 14px; background:var(--panel); color:var(--ink); font-weight:600; font-size:13px;
+}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+.btn.primary:hover{background:var(--accent-dark)}
+.btn:not(.primary):hover{background:var(--accent-soft)}
+
+.layout{display:grid; grid-template-columns:340px 1fr; min-height:calc(100vh - 62px)}
+.sidebar{border-right:1px solid var(--line); background:var(--panel); display:flex; flex-direction:column; min-height:0}
+.main{padding:22px; overflow:auto}
+
+.sb-section{padding:16px 18px; border-bottom:1px solid var(--line)}
+.sb-label{font-family:ui-sans-serif,system-ui,sans-serif; font-size:11px; font-weight:700; color:var(--muted); margin:0 0 8px; text-transform:none}
+.text-input{width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 10px; background:var(--bg); color:var(--ink); font-family:ui-sans-serif,system-ui,sans-serif; font-size:13px}
+.text-input:focus{outline:2px solid var(--accent); outline-offset:1px}
+
+.seg{display:flex; background:var(--bg); border-radius:8px; padding:3px; gap:3px}
+.seg button{flex:1; border:0; background:transparent; border-radius:6px; padding:8px 6px; font-size:12.5px; font-weight:600; color:var(--muted); font-family:ui-sans-serif,system-ui,sans-serif}
+.seg button.on{background:var(--panel); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+.tabs{display:flex; border-bottom:1px solid var(--line)}
+.tab{flex:1; border:0; background:transparent; padding:11px 8px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:12.5px; font-weight:700; color:var(--muted); border-bottom:2px solid transparent}
+.tab.on{color:var(--accent); border-color:var(--accent)}
+.tab-count{display:inline-block; margin-left:5px; background:var(--accent-soft); color:var(--accent); border-radius:10px; padding:1px 6px; font-size:10.5px}
+
+.tab-panel{display:none; flex:1; min-height:0; overflow-y:auto; padding:14px 16px}
+.tab-panel.on{display:block}
+
+.student-row{
+  display:grid; grid-template-columns:1fr auto auto auto auto; gap:6px; align-items:center;
+  padding:8px; border:1px solid var(--line); border-radius:9px; margin-bottom:7px; background:var(--bg);
+  font-family:ui-sans-serif,system-ui,sans-serif;
+}
+.student-row.locked{border-color:var(--accent)}
+.student-name{border:1px solid var(--line); border-radius:6px; padding:6px 7px; font-size:12.5px; background:var(--panel); color:var(--ink); width:100%}
+.mini-select{border:1px solid var(--line); border-radius:6px; padding:6px 5px; font-size:11px; background:var(--panel); color:var(--ink)}
+.icon-sm{border:0; background:transparent; width:26px; height:26px; border-radius:6px; color:var(--muted); font-size:14px}
+.icon-sm.lock.on{background:var(--accent-soft); color:var(--accent)}
+.icon-sm:hover{background:var(--accent-soft)}
+.add-row{width:100%; border:1px dashed var(--line); background:transparent; border-radius:9px; padding:9px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:12.5px; font-weight:600; color:var(--muted)}
+.add-row:hover{border-color:var(--accent); color:var(--accent)}
+
+.constraint-row{display:grid; grid-template-columns:1fr 1fr auto; gap:6px; margin-bottom:8px; font-family:ui-sans-serif,system-ui,sans-serif}
+.constraint-row select{border:1px solid var(--line); border-radius:6px; padding:7px; font-size:11.5px; background:var(--bg); color:var(--ink)}
+.strength-row{display:grid; grid-template-columns:1fr; margin-top:-3px; margin-bottom:10px}
+.strength-row select{border:1px solid var(--line); border-radius:6px; padding:6px 7px; font-size:11px; background:var(--panel); color:var(--muted)}
+.empty-note{font-family:ui-sans-serif,system-ui,sans-serif; font-size:12px; color:var(--muted); padding:10px 2px}
+
+.stage-head{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:14px; flex-wrap:wrap}
+.stage-head h1{font-size:24px; margin:0; font-weight:600}
+.legend{display:flex; gap:14px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:11.5px; color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+.dot.g{background:var(--green)} .dot.a{background:var(--amber)} .dot.r{background:var(--red)}
+
+.board{width:min(420px,60%); margin:4px auto 18px; border:1.5px solid var(--line); border-radius:8px; text-align:center; padding:8px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:10.5px; letter-spacing:.1em; color:var(--muted)}
+
+.room{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:26px;
+  min-height:360px; overflow-x:auto;
+}
+.room-grid{display:flex; flex-wrap:wrap; gap:20px; justify-content:center; min-width:min-content}
+.unit{border:1px solid var(--line); border-radius:12px; padding:10px; background:var(--bg); min-width:150px}
+.unit-label{font-family:ui-sans-serif,system-ui,sans-serif; font-size:9.5px; font-weight:700; color:var(--muted); margin-bottom:7px}
+.seats{display:grid; gap:6px}
+.seat{border:1px solid var(--line); border-radius:8px; padding:7px 9px; background:var(--panel); display:flex; justify-content:space-between; align-items:center; gap:6px}
+.seat-name{font-size:12.5px; font-weight:600}
+.badge{font-family:ui-sans-serif,system-ui,sans-serif; font-size:9px; font-weight:700; padding:2px 5px; border-radius:5px; background:var(--accent-soft); color:var(--accent)}
+.badge.lock{background:var(--accent); color:#fff}
+.empty-room{text-align:center; color:var(--muted); padding:70px 10px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:13px}
+
+.results{margin-top:20px; display:grid; grid-template-columns:1.3fr .9fr; gap:16px}
+.panel-card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; font-family:ui-sans-serif,system-ui,sans-serif}
+.panel-card h2{font-size:14px; margin:0 0 3px; font-weight:700}
+.panel-sub{font-size:11px; color:var(--muted); margin:0 0 10px}
+.cand{display:grid; grid-template-columns:48px 1fr auto; gap:10px; align-items:center; padding:10px; border:1px solid var(--line); border-radius:10px; margin-bottom:7px}
+.cand:hover{border-color:var(--accent)}
+.cand.sel{border-color:var(--accent); background:var(--accent-soft)}
+.cand-score{font-size:18px; font-weight:800; color:var(--accent)}
+.cand-title{font-size:12.5px; font-weight:700}
+.cand-detail{font-size:10.5px; color:var(--muted); margin-top:2px}
+.cand-tag{font-size:9.5px; font-weight:700; padding:4px 7px; border-radius:6px; background:var(--bg); color:var(--muted)}
+.insight-score{font-size:30px; font-weight:800; color:var(--accent)}
+.insight-score small{font-size:12px; color:var(--muted); font-weight:500}
+.insight-list{margin:10px 0 0; padding-left:16px; font-size:11.5px; color:var(--ink); line-height:1.7}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{border-right:0; border-bottom:1px solid var(--line)}
+  .results{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span>Desk</span> Planner</div>
+  <div class="hdr-actions">
+    <button class="btn" id="loadDemoBtn">Load demo class</button>
+    <button class="btn primary" id="generateBtn">Generate arrangements</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-section">
+      <p class="sb-label">Class name</p>
+      <input id="className" class="text-input" value="Period 3 — Algebra II" />
+      <p class="sb-label" style="margin-top:14px">Seating format</p>
+      <div class="seg" id="layoutPicker">
+        <button data-layout="pairs" class="on">Pairs of 2</button>
+        <button data-layout="groups">Groups of 5</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" data-tab="students">Students <span class="tab-count" id="studentTabCount">0</span></button>
+      <button class="tab" data-tab="rules">Keep apart <span class="tab-count" id="ruleTabCount">0</span></button>
+    </div>
+
+    <div class="tab-panel on" id="studentsTab">
+      <div id="studentList"></div>
+      <button class="add-row" id="addStudentBtn">+ Add student</button>
+    </div>
+
+    <div class="tab-panel" id="rulesTab">
+      <p class="empty-note" style="margin-top:0">Pick two students and how strict the rule is.</p>
+      <div id="constraintList"></div>
+      <button class="add-row" id="addConstraintBtn">+ Add rule</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="stage-head">
+      <div>
+        <h1 id="classTitle">Period 3 — Algebra II</h1>
+      </div>
+      <div class="legend">
+        <span><span class="dot g"></span>Locked seat</span>
+        <span><span class="dot a"></span>Soft conflict</span>
+        <span><span class="dot r"></span>Hard conflict</span>
+      </div>
+    </div>
+
+    <div class="board">WHITEBOARD</div>
+    <div class="room"><div id="classroom" class="room-grid"></div></div>
+
+    <div class="results">
+      <section class="panel-card">
+        <h2>Generated arrangements</h2>
+        <p class="panel-sub" id="candidateSub">Generate a few options, then compare tradeoffs.</p>
+        <div id="candidateList"></div>
+      </section>
+      <section class="panel-card">
+        <h2>Why this arrangement</h2>
+        <div id="insightBox">
+          <div class="insight-score"><span>—</span><small>/100</small></div>
+          <p class="panel-sub">Select a candidate to see what the planner prioritized.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+const state = { layout:"pairs", students:[], constraints:[], candidates:[], selectedCandidate:null, currentArrangement:[], lockedStudents:new Set(), activeTab:"students" };
+
+const demoNames = ["Ava","Ben","Carla","Diego","Elena","Finn","Grace","Hassan","Ivy","Jake","Kayla","Leo","Maya","Noah","Olivia","Priya","Quinn","Riley","Sofia","Theo","Uma","Victor","Willow","Zane"];
+function makeDemoStudents(){
+  return demoNames.map((name,i)=>({ id:crypto.randomUUID(), name,
+    visibility:["medium","high","medium","low","medium","high"][i%6],
+    behavior:["low","medium","high","medium","low","medium"][i%6] }));
+}
+
+const $ = s => document.querySelector(s);
+const esc = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const norm = n => String(n||"").trim();
+const valueScore = v => v==="low"?1:v==="medium"?2:3;
+
+function groupSizes(n){
+  if(n<=0) return [];
+  const groups = Math.ceil(n/5);
+  const sizes = Array(groups).fill(5);
+  let extra = groups*5 - n;
+  let idx = groups-1;
+  while(extra>0){ if(sizes[idx]>4){sizes[idx]--; extra--;} else { idx--; if(idx<0) break; } }
+  while(sizes.some(s=>s<4) && groups>1){ sizes[sizes.indexOf(5)]--; sizes[sizes.lastIndexOf(4)]++; }
+  return sizes;
+}
+
+function renderStats(){
+  $("#studentTabCount").textContent = state.students.length;
+  $("#ruleTabCount").textContent = state.constraints.length;
+}
+
+function renderStudents(){
+  const box = $("#studentList"); box.innerHTML = "";
+  state.students.forEach(st=>{
+    const row = document.createElement("div");
+    row.className = "student-row" + (state.lockedStudents.has(st.id) ? " locked":"");
+    row.innerHTML = `
+      <input class="student-name" value="${esc(st.name)}" />
+      <select class="mini-select vis">
+        <option value="low" ${st.visibility==="low"?"selected":""}>Vis L</option>
+        <option value="medium" ${st.visibility==="medium"?"selected":""}>Vis M</option>
+        <option value="high" ${st.visibility==="high"?"selected":""}>Vis H</option>
+      </select>
+      <select class="mini-select beh">
+        <option value="low" ${st.behavior==="low"?"selected":""}>Beh L</option>
+        <option value="medium" ${st.behavior==="medium"?"selected":""}>Beh M</option>
+        <option value="high" ${st.behavior==="high"?"selected":""}>Beh H</option>
+      </select>
+      <button class="icon-sm lock ${state.lockedStudents.has(st.id)?"on":""}" title="Lock seat">${state.lockedStudents.has(st.id)?"●":"○"}</button>
+      <button class="icon-sm del" title="Remove">×</button>`;
+    row.querySelector(".student-name").addEventListener("input", e=>{ st.name=e.target.value; renderConstraints(); renderClassTitle(); });
+    row.querySelector(".vis").addEventListener("change", e=> st.visibility=e.target.value);
+    row.querySelector(".beh").addEventListener("change", e=> st.behavior=e.target.value);
+    row.querySelector(".lock").addEventListener("click", ()=>{
+      state.lockedStudents.has(st.id) ? state.lockedStudents.delete(st.id) : state.lockedStudents.add(st.id);
+      renderStudents(); renderClassroom(state.currentArrangement);
+    });
+    row.querySelector(".del").addEventListener("click", ()=>{
+      state.lockedStudents.delete(st.id);
+      state.constraints = state.constraints.filter(c=>c[0]!==st.id && c[1]!==st.id);
+      state.students = state.students.filter(s=>s.id!==st.id);
+      renderAll();
+    });
+    box.appendChild(row);
+  });
+  renderStats();
+}
+
+function fillOptions(sel){
+  sel.innerHTML = state.students.map(s=>`<option value="${esc(s.id)}">${esc(norm(s.name)||"Unnamed")}</option>`).join("");
+}
+
+function renderConstraints(){
+  const box = $("#constraintList"); box.innerHTML = "";
+  if(!state.constraints.length){
+    box.innerHTML = `<div class="empty-note">No separation rules yet.</div>`;
+    return;
+  }
+  state.constraints.forEach((c,i)=>{
+    const wrap = document.createElement("div");
+    const row = document.createElement("div"); row.className = "constraint-row";
+    const a = document.createElement("select"); const b = document.createElement("select");
+    fillOptions(a); fillOptions(b); a.value=c[0]; b.value=c[1];
+    const del = document.createElement("button"); del.className="icon-sm"; del.textContent="×";
+    a.addEventListener("change", e=> state.constraints[i][0]=e.target.value);
+    b.addEventListener("change", e=> state.constraints[i][1]=e.target.value);
+    del.addEventListener("click", ()=>{ state.constraints.splice(i,1); renderConstraints(); renderStats(); });
+    row.append(a,b,del);
+    const srow = document.createElement("div"); srow.className="strength-row";
+    const sel = document.createElement("select");
+    sel.innerHTML = `<option value="hard">Don't put together</option><option value="soft">Try not to put together</option>`;
+    sel.value = c[2];
+    sel.addEventListener("change", e=> state.constraints[i][2]=e.target.value);
+    srow.appendChild(sel);
+    wrap.append(row, srow);
+    box.appendChild(wrap);
+  });
+}
+
+function renderClassTitle(){ $("#classTitle").textContent = $("#className").value.trim() || "Untitled class"; }
+
+function addStudent(){
+  state.students.push({ id:crypto.randomUUID(), name:`Student ${state.students.length+1}`, visibility:"medium", behavior:"medium" });
+  renderStudents(); renderConstraints();
+}
+function addConstraint(){
+  if(state.students.length<2) return;
+  state.constraints.push([state.students[0].id, state.students[1].id, "hard"]);
+  renderConstraints(); renderStats();
+}
+
+function buildUnits(){
+  const units = [];
+  if(state.layout==="pairs"){ for(let i=0;i<state.students.length;i+=2) units.push(state.students.slice(i,i+2)); }
+  else { const sizes=groupSizes(state.students.length); let c=0; sizes.forEach(sz=>{ units.push(state.students.slice(c,c+sz)); c+=sz; }); }
+  return units;
+}
+function shuffle(arr, rng=Math.random){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function seeded(n){ const x=Math.sin(n*999.91)*10000; return x-Math.floor(x); }
+
+function calcSeatQuality(st, unitIndex, total){
+  const pos = total<=1 ? 0 : unitIndex/(total-1);
+  const pref = (4-valueScore(st.visibility))/3;
+  return 1 - Math.abs(pos-pref)*0.55;
+}
+function arrangementPenalty(arr){
+  const map=new Map(); arr.forEach((u,ui)=>u.forEach(s=>map.set(s.id,ui)));
+  let hard=0, soft=0;
+  for(const [a,b,strength] of state.constraints){
+    if(!map.has(a)||!map.has(b)) continue;
+    if(map.get(a)===map.get(b)){ strength==="hard" ? hard++ : soft++; }
+  }
+  return {hard, soft};
+}
+function scoreArrangement(arr){
+  const total = arr.length; let vis=0, beh=0, locked=0;
+  arr.forEach((u,ui)=>u.forEach(s=>{
+    vis += calcSeatQuality(s,ui,total)*100;
+    beh += 100 - (valueScore(s.behavior)-1)*8;
+    if(state.lockedStudents.has(s.id)) locked++;
+  }));
+  const n = Math.max(state.students.length,1);
+  vis/=n; beh/=n;
+  const p = arrangementPenalty(arr);
+  const score = Math.max(0, Math.round(vis*0.5 + beh*0.3 + (p.hard===0?15:Math.max(0,15-p.hard*7)) + Math.max(0,5-p.soft*2)));
+  return { score, visibility:Math.round(vis), behavior:Math.round(beh), hard:p.hard, soft:p.soft, locked };
+}
+function wouldConflict(student, unit){
+  return state.constraints.some(([a,b,strength])=>{
+    if(strength!=="hard") return false;
+    const ids = new Set(unit.map(s=>s.id));
+    return (a===student.id && ids.has(b)) || (b===student.id && ids.has(a));
+  });
+}
+function createCandidate(seed){
+  let working = shuffle(state.students, ()=>seeded(seed));
+  working.sort((a,b)=> valueScore(b.visibility)-valueScore(a.visibility));
+  const unitCount = state.layout==="pairs" ? Math.ceil(working.length/2) : groupSizes(working.length).length;
+  const units = Array.from({length:unitCount}, ()=>[]);
+  const capacities = state.layout==="pairs" ? units.map(()=>2) : groupSizes(state.students.length);
+  const lockedStudents = state.students.filter(s=>state.lockedStudents.has(s.id));
+  const lockedPlacement = new Map();
+  if(state.currentArrangement.length){
+    state.currentArrangement.forEach((u,ui)=>u.forEach((s,si)=>{ if(state.lockedStudents.has(s.id)) lockedPlacement.set(s.id,[ui,si]); }));
+  }
+  for(const s of lockedStudents){
+    const p = lockedPlacement.get(s.id);
+    if(p){ const [ui,si]=p; if(!units[ui]) units[ui]=[]; units[ui][si]=s; }
+  }
+  const unplaced = working.filter(s=>!lockedStudents.some(l=>l.id===s.id));
+  for(const s of shuffle(unplaced, ()=>seeded(seed + s.id.length))){
+    const choices = units.map((u,ui)=>({ui,unit:u,cap:capacities[ui]||2})).filter(x=>x.unit.filter(Boolean).length<x.cap);
+    choices.sort((a,b)=>{
+      const ah=wouldConflict(s,a.unit)?1:0, bh=wouldConflict(s,b.unit)?1:0;
+      if(ah!==bh) return ah-bh;
+      const ab=a.unit.filter(Boolean).filter(x=>x.behavior==="high").length;
+      const bb=b.unit.filter(Boolean).filter(x=>x.behavior==="high").length;
+      if(ab!==bb) return ab-bb;
+      return a.unit.filter(Boolean).length - b.unit.filter(Boolean).length;
+    });
+    const choice = choices[0]; if(!choice) continue;
+    const slot = choice.unit.findIndex(x=>!x);
+    if(slot>=0) choice.unit[slot]=s; else choice.unit.push(s);
+  }
+  return units.map(u=>u.filter(Boolean));
+}
+
+function generateCandidates(){
+  if(!state.students.length) return;
+  const cands = [];
+  for(let i=0;i<8;i++){
+    const arr = createCandidate(41+i*17);
+    cands.push({ id:crypto.randomUUID(), name:`Option ${String.fromCharCode(65+i)}`, arrangement:arr, ...scoreArrangement(arr) });
+  }
+  cands.sort((a,b)=>b.score-a.score);
+  state.candidates = cands.slice(0,5);
+  state.selectedCandidate = state.candidates[0]?.id || null;
+  state.currentArrangement = state.candidates[0]?.arrangement || [];
+  renderCandidates(); renderClassroom(state.currentArrangement); renderInsight(state.candidates[0]);
+}
+
+function renderCandidates(){
+  const list = $("#candidateList");
+  $("#candidateSub").textContent = state.candidates.length ? `${state.candidates.length} options generated` : "Generate a few options, then compare tradeoffs.";
+  if(!state.candidates.length){ list.innerHTML=""; return; }
+  list.innerHTML = state.candidates.map(c=>`
+    <div class="cand ${c.id===state.selectedCandidate?"sel":""}" data-id="${c.id}">
+      <div class="cand-score">${c.score}</div>
+      <div><div class="cand-title">${esc(c.name)}</div>
+      <div class="cand-detail">Visibility ${c.visibility}% · Behavior ${c.behavior}% · ${c.hard} hard conflicts</div></div>
+      <div class="cand-tag">${c.hard===0?"Clean":"Review"}</div>
+    </div>`).join("");
+  list.querySelectorAll(".cand").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      state.selectedCandidate = el.dataset.id;
+      const c = state.candidates.find(x=>x.id===state.selectedCandidate);
+      state.currentArrangement = c.arrangement;
+      renderCandidates(); renderClassroom(c.arrangement); renderInsight(c);
+    });
+  });
+}
+
+function renderInsight(c){
+  const box = $("#insightBox");
+  if(!c){ box.innerHTML = `<div class="insight-score"><span>—</span><small>/100</small></div><p class="panel-sub">Select a candidate to see what the planner prioritized.</p>`; return; }
+  const notes = [
+    `${c.visibility}% visibility fit across the class.`,
+    `${c.behavior}% behavior-balancing score.`,
+    c.hard===0 ? "All hard separation rules are satisfied." : `${c.hard} hard separation conflict${c.hard===1?"":"s"} remain.`
+  ];
+  if(c.soft>0) notes.push(`${c.soft} soft preference conflict${c.soft===1?"":"s"} remain.`);
+  if(c.locked>0) notes.push(`${c.locked} locked student${c.locked===1?"":"s"} were kept in place.`);
+  box.innerHTML = `<div class="insight-score"><span>${c.score}</span><small>/100</small></div>
+    <p class="panel-sub">A starting recommendation, not a final decision.</p>
+    <ul class="insight-list">${notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`;
+}
+
+function renderClassroom(arr){
+  const el = $("#classroom");
+  el.innerHTML = "";
+  if(!arr.length){ el.innerHTML = `<div class="empty-room">Add students and press Generate to see the room.</div>`; return; }
+  arr.forEach((unit,ui)=>{
+    const u = document.createElement("div"); u.className="unit";
+    u.innerHTML = `<div class="unit-label">${state.layout==="pairs"?"DESK":"GROUP"} ${ui+1}</div>`;
+    const seats = document.createElement("div"); seats.className="seats";
+    unit.forEach(st=>{
+      const seat = document.createElement("div"); seat.className="seat";
+      seat.innerHTML = `<span class="seat-name">${esc(norm(st.name)||"Unnamed")}</span>
+        <span>${state.lockedStudents.has(st.id)?'<span class="badge lock">LOCK</span>':''}
+        <span class="badge">${st.visibility[0].toUpperCase()}</span></span>`;
+      seats.appendChild(seat);
+    });
+    u.appendChild(seats); el.appendChild(u);
+  });
+}
+
+function renderAll(){ renderStudents(); renderConstraints(); renderClassTitle(); renderStats(); renderClassroom(state.currentArrangement); }
+
+document.querySelectorAll("#layoutPicker button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    state.layout = b.dataset.layout;
+    document.querySelectorAll("#layoutPicker button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    state.currentArrangement=[]; state.candidates=[]; state.selectedCandidate=null;
+    renderCandidates(); renderClassroom([]); renderInsight(null);
+  });
+});
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".tab-panel").forEach(x=>x.classList.remove("on"));
+    t.classList.add("on");
+    $("#"+t.dataset.tab+"Tab").classList.add("on");
+  });
+});
+
+$("#className").addEventListener("input", renderClassTitle);
+$("#addStudentBtn").addEventListener("click", addStudent);
+$("#addConstraintBtn").addEventListener("click", addConstraint);
+$("#generateBtn").addEventListener("click", generateCandidates);
+$("#loadDemoBtn").addEventListener("click", ()=>{
+  state.students = makeDemoStudents();
+  state.constraints = [
+    [state.students[1].id, state.students[8].id, "hard"],
+    [state.students[4].id, state.students[10].id, "soft"],
+    [state.students[7].id, state.students[16].id, "hard"]
+  ];
+  state.lockedStudents = new Set();
+  state.candidates=[]; state.currentArrangement=[];
+  renderAll(); generateCandidates();
+});
+
+state.students = makeDemoStudents();
+renderAll();
+generateCandidates();
+</script>
+</body>
+</html>

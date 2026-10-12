@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Desk Planner — Classroom Arrangement MVP</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand"><span class="brand-mark">DP</span> Desk Planner</div>
+        <p class="subtitle">Build smarter seating & group arrangements.</p>
+      </div>
+      <div class="top-actions">
+        <button class="ghost-btn" id="loadDemoBtn">Load Demo</button>
+        <button class="primary-btn" id="generateBtn">Generate Arrangements</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Class setup</h2>
+              <p>Start with the room and seating format.</p>
+            </div>
+          </div>
+
+          <label class="field-label">Class name</label>
+          <input id="className" class="text-input" value="Period 3 — Algebra II" />
+
+          <label class="field-label">Layout</label>
+          <div class="segmented" id="layoutPicker">
+            <button data-layout="pairs" class="selected">2 seats</button>
+            <button data-layout="groups">Groups of 5</button>
+          </div>
+
+          <div class="mini-stat-row">
+            <div class="mini-stat">
+              <span id="studentCount">24</span>
+              <small>students</small>
+            </div>
+            <div class="mini-stat">
+              <span id="unitCount">12</span>
+              <small>units</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Students</h2>
+              <p>Use low / medium / high instead of rigid labels.</p>
+            </div>
+            <button class="icon-btn" id="addStudentBtn" title="Add student">+</button>
+          </div>
+          <div id="studentList" class="student-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Keep apart</h2>
+              <p>Hard constraints vs. preferences.</p>
+            </div>
+            <button class="icon-btn" id="addConstraintBtn" title="Add constraint">+</button>
+          </div>
+          <div id="constraintList" class="constraint-list"></div>
+        </section>
+      </aside>
+
+      <section class="main-stage">
+        <div class="stage-toolbar">
+          <div>
+            <span class="eyebrow">CLASSROOM</span>
+            <h1 id="classTitle">Period 3 — Algebra II</h1>
+          </div>
+          <div class="toolbar-meta">
+            <div class="legend"><span class="dot green"></span> Locked</div>
+            <div class="legend"><span class="dot amber"></span> Preference conflict</div>
+            <div class="legend"><span class="dot red"></span> Hard conflict</div>
+          </div>
+        </div>
+
+        <div class="board">WHITEBOARD</div>
+
+        <div class="classroom-wrap">
+          <div id="classroom" class="classroom"></div>
+        </div>
+
+        <div class="bottom-grid">
+          <section class="results-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">CANDIDATES</span>
+                <h2>Generated arrangements</h2>
+              </div>
+              <span id="candidateCount" class="pill">0 options</span>
+            </div>
+            <div id="candidateList" class="candidate-list empty-state">
+              <div class="empty-icon">✦</div>
+              <h3>No arrangements yet</h3>
+              <p>Generate a few options, then compare their tradeoffs.</p>
+            </div>
+          </section>
+
+          <section class="results-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">INSIGHT</span>
+                <h2>Why this arrangement?</h2>
+              </div>
+            </div>
+            <div id="insightBox" class="insight-box">
+              <div class="insight-score"><span>—</span><small>/100</small></div>
+              <p>Select a candidate to see what the planner prioritized.</p>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <template id="studentTemplate">
+    <div class="student-row">
+      <input class="student-name" />
+      <select class="student-visibility">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+      <select class="student-behavior">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+      <button class="lock-student" type="button" title="Lock student in place">○</button>
+      <button class="delete-student" type="button" title="Remove student">×</button>
+    </div>
+  </template>
+
+  <template id="constraintTemplate">
+    <div class="constraint-row">
+      <select class="constraint-a"></select>
+      <select class="constraint-b"></select>
+      <select class="constraint-strength">
+        <option value="hard">Don't put together</option>
+        <option value="soft">Try not to put together</option>
+      </select>
+      <button class="delete-constraint" type="button">×</button>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

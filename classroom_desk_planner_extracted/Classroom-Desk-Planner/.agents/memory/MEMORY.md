@@ -1,0 +1,1 @@
+- [Separate classroom setup](separate-classroom-setup.md) — Keep student editing and seating rules on a page distinct from the classroom map.
