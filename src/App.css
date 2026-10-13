@@ -1372,3 +1372,4 @@ a { color: inherit; }
   .gm-controls { flex-direction: column; align-items: stretch; }
   .gm-size-buttons { justify-content: center; }
 }
+.roster-tags:empty { display: none; }

@@ -1,0 +1,25 @@
+{
+  "summary": "Frontend-only smoke test of Desk Planner create-class flow, setup/roster, student settings drawer, persistence, and classroom map rendering. All major flows pass with no console errors.",
+  "tested_scope": ["frontend", "integration"],
+  "passed": [
+    "Home -> Open Desk Planner -> new-class-btn opens create-class-card",
+    "Create card has name input, layout options (pairs/groups), teacher desk (front/back), cancel, continue; continue is disabled when name empty and enabled after typing",
+    "Continue navigates to setup page with class-details-panel; class-name-input is prefilled from create card",
+    "Add student via add-student-input + Enter and via add-student-btn works",
+    "Bulk add via paste-list-btn -> bulk-add-textarea -> bulk-add-submit adds multiple students (newline and comma separated) — 6 students created from 2 single + 4 bulk",
+    "Each roster card exposes student-card-{i}, student-settings-btn-{i}, student-delete-btn-{i}",
+    "Student settings drawer opens with visibility-low/medium/high, behaviour-low/medium/high, student-settings-notes textarea, near-teacher-switch, apart-chip-{peerId}, apart-strength-{peerId}, together-chip-{peerId}",
+    "Selecting a peer as Together removes the Apart link with that peer (card tags updated to show 'Near teacher', 'Together · 1', 'Note' and no 'Apart · n')",
+    "Drawer closes via student-settings-done",
+    "Data persists in localStorage key 'desk-planner-db' (1136 bytes) after page reload; class appears on hub as class-row-0 with class-edit-btn-0 and reopens with all 6 students intact",
+    "setup-review-map-btn renders Planner: 3 desks (pairs layout), Together pair (Ann & Ben) seated at same desk (DESK 2), Apart pair (Cat on DESK 3, Dee on DESK 1) separated — 'All hard separation rules satisfied', score 87",
+    "No console errors across all flows",
+    "Mobile viewport 390px: create card and setup render cleanly without overlapping text"
+  ],
+  "failed": [],
+  "action_items": [],
+  "success_rate": {"backend": "N/A (no backend)", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": "Correct hub navigation is via class-edit-btn-0 (Edit setup) rather than clicking the class title text; the title text node is not clickable to open setup. Not a bug — intentional UI."
+}
