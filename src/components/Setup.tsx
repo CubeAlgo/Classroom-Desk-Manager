@@ -38,6 +38,7 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
+  const [addError, setAddError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,17 +68,34 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
   }, [name, layout, deskPos, classData, classId, onClassUpdated]);
 
   const addNames = async (names: string[]) => {
-    const clean = names.map((n) => n.trim()).filter(Boolean);
+    const taken = new Set(students.map((s) => s.name.trim().toLowerCase()));
+    const clean: string[] = [];
+    const dupes: string[] = [];
+    for (const raw of names) {
+      const n = raw.trim();
+      if (!n) continue;
+      if (taken.has(n.toLowerCase())) { dupes.push(n); continue; }
+      taken.add(n.toLowerCase());
+      clean.push(n);
+    }
+    setAddError(dupes.length ? `Already in this class: ${dupes.join(", ")}. Each student needs a unique name.` : "");
     const created: StudentRow[] = [];
     try {
       for (const [i, n] of clean.entries()) created.push(await createStudent(classId, n, students.length + i));
     } catch (e) { console.error(e); }
     setStudents((prev) => [...prev, ...created]);
+    return dupes.length === 0;
+  };
+
+  const nextDefaultName = () => {
+    const taken = new Set(students.map((s) => s.name.trim().toLowerCase()));
+    let n = students.length + 1;
+    while (taken.has(`student ${n}`)) n++;
+    return `Student ${n}`;
   };
 
   const handleAddOne = async () => {
-    await addNames([newName || `Student ${students.length + 1}`]);
-    setNewName("");
+    if (await addNames([newName || nextDefaultName()])) setNewName("");
   };
 
   const handleAddBulk = async () => {
@@ -86,8 +104,12 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
     setBulkOpen(false);
   };
 
+  const isDuplicate = (id: string, name: string) =>
+    students.some((s) => s.id !== id && s.name.trim().toLowerCase() === name.trim().toLowerCase());
+
   const handleUpdateStudent = async (id: string, patch: StudentPatch) => {
     setStudents((prev) => prev.map((s) => s.id === id ? { ...s, ...patch } : s));
+    if (patch.name !== undefined && (!patch.name.trim() || isDuplicate(id, patch.name))) return;
     try { await updateStudent(id, patch); } catch (e) { console.error(e); }
   };
 
@@ -159,11 +181,14 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
           </div>
 
           <div className="add-student-bar">
-            <input className="text-input" data-testid="add-student-input" value={newName} placeholder="Type a student's name and press Enter"
-              onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddOne()} />
-            <button className="text-button filled" data-testid="add-student-btn" onClick={handleAddOne}>＋ Add student</button>
+            <input className={`text-input ${newName.trim() && isDuplicate("", newName) ? "invalid" : ""}`} data-testid="add-student-input" value={newName} placeholder="Type a student's name and press Enter"
+              onChange={(e) => { setNewName(e.target.value); setAddError(""); }} onKeyDown={(e) => e.key === "Enter" && handleAddOne()} />
+            <button className="text-button filled" data-testid="add-student-btn" onClick={handleAddOne} disabled={!!newName.trim() && isDuplicate("", newName)}>＋ Add student</button>
             <button className="text-button outlined" data-testid="paste-list-btn" onClick={() => setBulkOpen((v) => !v)}>Paste a list</button>
           </div>
+          {(addError || (newName.trim() && isDuplicate("", newName))) && (
+            <p className="field-error" data-testid="add-student-error">{addError || `"${newName.trim()}" is already in this class. Try adding a last initial.`}</p>
+          )}
           {bulkOpen && (
             <div className="bulk-add" data-testid="bulk-add-panel">
               <textarea className="text-input" data-testid="bulk-add-textarea" rows={5} value={bulkText} onChange={(e) => setBulkText(e.target.value)}
@@ -181,12 +206,15 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
             <div className="empty-hint" data-testid="students-empty">No students yet. Add your first student above.</div>
           ) : (
             <div className="roster-grid" data-testid="student-list">
-              {students.map((s, i) => (
-                <div key={s.id} className="roster-card" data-testid={`student-card-${i}`}>
-                  <span className="roster-avatar">{(s.name || "?").trim().charAt(0).toUpperCase()}</span>
+              {students.map((s, i) => {
+                const dupe = !s.name.trim() || isDuplicate(s.id, s.name);
+                return (
+                <div key={s.id} className={`roster-card ${dupe ? "invalid" : ""}`} data-testid={`student-card-${i}`}>
+                  <span className="roster-avatar">S{i + 1}</span>
                   <div className="roster-copy">
                     <input className="roster-name" data-testid={`student-name-input-${i}`} value={s.name}
                       onChange={(e) => handleUpdateStudent(s.id, { name: e.target.value })} />
+                    {dupe && <p className="field-error" data-testid={`student-name-error-${i}`}>{s.name.trim() ? "Name already used — not saved" : "Name can't be empty"}</p>}
                     <div className="roster-tags">
                       {studentTags(s, constraints).map((t) => <span key={t.label} className={`tag ${t.tone}`}>{t.label}</span>)}
                     </div>
@@ -194,7 +222,8 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
                   <button className="roster-gear" data-testid={`student-settings-btn-${i}`} onClick={() => setSettingsId(s.id)} title="Student settings" aria-label="Student settings"><GearIcon /></button>
                   <button className="delete-student" data-testid={`student-delete-btn-${i}`} onClick={() => handleDeleteStudent(s.id)} title="Remove">×</button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

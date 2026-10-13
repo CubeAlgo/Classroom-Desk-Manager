@@ -12,11 +12,12 @@ const TEACHER_FRONT_Y = 4;
 const TEACHER_BACK_Y = 88;
 
 export function Planner({
-  classId, classData, onNavigate,
+  classId, classData, onNavigate, onClassUpdated,
 }: {
   classId: string;
   classData: ClassRow | null;
   onNavigate: (page: Page, classId?: string) => void;
+  onClassUpdated: (cls: ClassRow) => void;
 }) {
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [constraints, setConstraints] = useState<ConstraintRow[]>([]);
@@ -66,10 +67,13 @@ export function Planner({
   useEffect(() => { load(); }, [load]);
 
   const buildInitialPositions = (count: number): DeskPosition[] => {
-    const yStart = teacherDeskAtFront ? 22 : 12;
+    const cols = layout === "groups" ? 3 : 4;
+    const rows = Math.ceil(count / cols);
+    const yStart = teacherDeskAtFront ? 14 : 4;
+    const yStep = rows > 1 ? Math.min(layout === "groups" ? 40 : 24, (70 - 0) / (rows - 1)) : 0;
     return Array.from({ length: count }, (_, i) => ({
-      x: 10 + (i % 4) * 22,
-      y: yStart + Math.floor(i / 4) * 32,
+      x: layout === "groups" ? 3 + (i % cols) * 33 : 6 + (i % cols) * 23,
+      y: yStart + Math.floor(i / cols) * yStep,
     }));
   };
 
@@ -167,17 +171,19 @@ export function Planner({
   };
 
   const handleToggleTeacherDeskSide = () => {
+    if (!classData) return;
     const newPos = teacherDeskAtFront ? "back" : "front";
+    onClassUpdated({ ...classData, teacher_desk_position: newPos });
     updateClass(classId, { teacher_desk_position: newPos }).catch(console.error);
-    // Optimistically update local state through parent — but we can also just
-    // force a refresh by updating classData in the parent via onNavigate hack.
-    // Simpler: just update our local view.
-    if (classData) {
-      const updated = { ...classData, teacher_desk_position: newPos };
-      // Notify parent through navigate (stays on same page)
-      onNavigate("planner", classId);
-    }
   };
+
+  const firstDeskRender = useRef(true);
+  useEffect(() => {
+    if (firstDeskRender.current) { firstDeskRender.current = false; return; }
+    setDeskPositions([]);
+    doGenerate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teacherDeskAtFront]);
 
   const ec = toEngineConstraints(constraints);
   const insight = selected ? rescoreGroups(currentGroups, ec, lockedIds, teacherDeskAtFront) : null;
@@ -205,10 +211,10 @@ export function Planner({
             <span className="legend-dot amber" style={{ marginLeft: 10 }} /> Soft conflict
             <span className="legend-dot red" style={{ marginLeft: 10 }} /> Hard conflict
           </div>
-          <button className="ghost-pill" onClick={handleToggleTeacherDeskSide}>
+          <button className="ghost-pill" data-testid="planner-desk-toggle-btn" onClick={handleToggleTeacherDeskSide}>
             Desk: {teacherDeskAtFront ? "Front" : "Back"} (swap)
           </button>
-          <button className="text-button filled" onClick={doGenerate}>Regenerate</button>
+          <button className="text-button filled" data-testid="planner-regenerate-btn" onClick={doGenerate}>Regenerate</button>
         </div>
       </div>
 
@@ -327,7 +333,7 @@ function TeacherDesk({ x, y, onMove }: { x: number; y: number; onMove: (x: numbe
 
   return (
     <div
-      className={`teacher-desk ${dragging ? "dragging" : ""}`}
+      data-testid="teacher-desk" className={`teacher-desk ${dragging ? "dragging" : ""}`}
       style={{ left: `${x}%`, top: `${y}%` }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -434,6 +440,40 @@ function DraggableTableGroup({
     deskDragRef.current = null;
   };
 
+  const topCount = Math.ceil(group.length / 2);
+  const renderSeat = (student: Student, si: number) => {
+    const isLocked = lockedIds.has(student.id);
+    const conflict = conflictMap.get(student.id);
+    return (
+      <div
+        key={student.id}
+        data-testid={`seat-${groupIndex}-${si}`}
+        className={`seat ${isLocked ? "locked" : ""} ${conflict ? `conflict-${conflict}` : ""}`}
+        draggable={!isLocked}
+        onDragStart={(e) => { e.stopPropagation(); handleSeatDragStart(si); }}
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setSeatDragOver(si); }}
+        onDragLeave={() => setSeatDragOver(null)}
+        onDrop={(e) => { e.stopPropagation(); handleSeatDrop(si); }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); onToggleLock(student.id); }}
+        title={isLocked ? "Locked — click to unlock" : "Click to lock · Drag to move"}
+        style={seatDragOver === si ? { outline: "2px dashed #3a8c5c", outlineOffset: "2px" } : undefined}
+      >
+        <div className="seat-inner">
+          <span className="seat-name">{student.name || "?"}</span>
+          <div className="seat-badges">
+            <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
+            <span className="badge" style={{ background: BEH_COLORS[student.behavior] + "20", color: BEH_COLORS[student.behavior] }} title={`Behavior: ${student.behavior}`}>B</span>
+            {student.nearTeacher && <span className="badge near-teacher-badge" title="Needs to sit near teacher">★</span>}
+            {isLocked && <span className="badge lock-badge">🔒</span>}
+            {conflict === "hard" && <span className="badge conflict-badge hard" title="Hard conflict — must separate">!</span>}
+            {conflict === "soft" && <span className="badge conflict-badge soft" title="Soft conflict — prefer separate">~</span>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       className={`table-group ${isDraggingDesk ? "dragging-desk" : ""}`}
@@ -452,43 +492,19 @@ function DraggableTableGroup({
         </div>
       </div>
 
-      <div className="table-container" ref={tableRef}>
-        <div className={`table-surface ${isPair ? "pair-surface" : "group-surface"}`}>
-          <span className="table-surface-label">{label}</span>
-        </div>
-        <div className={`seats-container ${isPair ? "pair-seats" : "group-seats"}`}>
-          {group.map((student, si) => {
-            const isLocked = lockedIds.has(student.id);
-            const conflict = conflictMap.get(student.id);
-            return (
-              <div
-                key={student.id}
-                className={`seat ${isLocked ? "locked" : ""} ${conflict ? `conflict-${conflict}` : ""}`}
-                draggable={!isLocked}
-                onDragStart={(e) => { e.stopPropagation(); handleSeatDragStart(si); }}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setSeatDragOver(si); }}
-                onDragLeave={() => setSeatDragOver(null)}
-                onDrop={(e) => { e.stopPropagation(); handleSeatDrop(si); }}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); onToggleLock(student.id); }}
-                title={isLocked ? "Locked — click to unlock" : "Click to lock · Drag to move"}
-                style={seatDragOver === si ? { outline: "2px dashed #3a8c5c", outlineOffset: "2px" } : undefined}
-              >
-                <div className="seat-inner">
-                  <span className="seat-name">{student.name || "?"}</span>
-                  <div className="seat-badges">
-                    <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
-                    <span className="badge" style={{ background: BEH_COLORS[student.behavior] + "20", color: BEH_COLORS[student.behavior] }} title={`Behavior: ${student.behavior}`}>B</span>
-                    {student.nearTeacher && <span className="badge near-teacher-badge" title="Needs to sit near teacher">★</span>}
-                    {isLocked && <span className="badge lock-badge">🔒</span>}
-                    {conflict === "hard" && <span className="badge conflict-badge hard" title="Hard conflict — must separate">!</span>}
-                    {conflict === "soft" && <span className="badge conflict-badge soft" title="Soft conflict — prefer separate">~</span>}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div className={`table-container ${isPair ? "pair-container" : "group-container"}`} ref={tableRef}>
+        {isPair ? (
+          <>
+            <div className="table-surface pair-surface"><span className="table-surface-label">{label}</span></div>
+            <div className="seats-container pair-seats">{group.map((s, si) => renderSeat(s, si))}</div>
+          </>
+        ) : (
+          <>
+            <div className="seats-container group-row">{group.slice(0, topCount).map((s, i) => renderSeat(s, i))}</div>
+            <div className="table-surface group-surface" style={{ width: Math.max(topCount, 2) * 84 + 10 }}><span className="table-surface-label">{label}</span></div>
+            <div className="seats-container group-row">{group.slice(topCount).map((s, i) => renderSeat(s, topCount + i))}</div>
+          </>
+        )}
       </div>
     </div>
   );

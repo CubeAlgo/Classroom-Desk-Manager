@@ -72,6 +72,8 @@ export function StudentSettings({ student, students, constraints, onClose, onUpd
   onStrength: (c: ConstraintRow, s: ConstraintStrength) => void;
 }) {
   const mine = constraints.filter((c) => c.student_a_id === student.id || c.student_b_id === student.id);
+  const nameError = !student.name.trim() ? "Name can't be empty" :
+    students.some((s) => s.id !== student.id && s.name.trim().toLowerCase() === student.name.trim().toLowerCase()) ? "Another student already has this name — not saved" : "";
   const apart = mine.filter((c) => c.strength !== "together");
   const together = mine.filter((c) => c.strength === "together");
   return (
@@ -82,6 +84,7 @@ export function StudentSettings({ student, students, constraints, onClose, onUpd
             <span className="section-kicker"><GearIcon size={11} /> STUDENT SETTINGS</span>
             <input className="drawer-name" data-testid="student-settings-name" value={student.name}
               onChange={(e) => onUpdate({ name: e.target.value })} placeholder="Student name" />
+            {nameError && <p className="field-error" data-testid="student-settings-name-error">{nameError}</p>}
           </div>
           <button className="drawer-close" onClick={onClose} data-testid="student-settings-close" aria-label="Close">×</button>
         </header>

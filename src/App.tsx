@@ -54,7 +54,7 @@ function App() {
   useEffect(() => {
     if (classId) {
       const found = allClasses.find((c) => c.id === classId);
-      if (found && (!classData || classData.id !== found.id || classData.name !== found.name || classData.layout !== found.layout)) {
+      if (found && (!classData || classData.id !== found.id || classData.name !== found.name || classData.layout !== found.layout || classData.teacher_desk_position !== found.teacher_desk_position)) {
         setClassData(found);
       }
     }
@@ -63,7 +63,7 @@ function App() {
   if (page === "tools") return <Tools onNavigate={navigate} />;
   if (page === "hub") return <Hub onNavigate={navigate} />;
   if (page === "setup" && classId) return <Setup classId={classId} classData={classData} onNavigate={navigate} onClassUpdated={handleClassUpdated} />;
-  if (page === "planner" && classId) return <Planner classId={classId} classData={classData} onNavigate={navigate} />;
+  if (page === "planner" && classId) return <Planner classId={classId} classData={classData} onNavigate={navigate} onClassUpdated={handleClassUpdated} />;
   if (page === "groupmaker") return <GroupMaker onNavigate={navigate} classId={classId ?? undefined} />;
   return <Tools onNavigate={navigate} />;
 }
