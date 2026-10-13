@@ -7,6 +7,7 @@ export interface Student {
   name: string;
   visibility: Level;
   behavior: Level;
+  nearTeacher: boolean;
 }
 
 export interface Constraint {
@@ -28,15 +29,14 @@ export interface Arrangement {
   lockedCount: number;
 }
 
-export function groupSizes(n: number): number[] {
-  if (n <= 0) return [];
-  const maxPerGroup = 5;
-  const groups = Math.ceil(n / maxPerGroup);
-  const baseSize = Math.floor(n / groups);
+export function groupSizesFor(n: number, targetSize: number): number[] {
+  if (n <= 0 || targetSize < 1) return [];
+  const groups = Math.ceil(n / targetSize);
+  const base = Math.floor(n / groups);
   let remainder = n % groups;
   const sizes: number[] = [];
   for (let i = 0; i < groups; i++) {
-    let s = baseSize;
+    let s = base;
     if (remainder > 0) { s++; remainder--; }
     sizes.push(s);
   }
@@ -48,8 +48,13 @@ export function groupSizes(n: number): number[] {
   return sizes;
 }
 
-export function getCapacities(count: number, layout: LayoutType): number[] {
+export function groupSizes(n: number): number[] {
+  return groupSizesFor(n, 5);
+}
+
+export function getCapacities(count: number, layout: LayoutType, targetGroupSize?: number): number[] {
   if (layout === "pairs") return Array(Math.ceil(count / 2)).fill(2);
+  if (targetGroupSize) return groupSizesFor(count, targetGroupSize);
   return groupSizes(count);
 }
 
@@ -71,10 +76,15 @@ function seeded(seed: number): () => number {
   return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
 }
 
-function seatQuality(student: Student, unitIndex: number, totalUnits: number): number {
+function seatQuality(student: Student, unitIndex: number, totalUnits: number, teacherDeskAtFront: boolean): number {
   const pos = totalUnits <= 1 ? 0 : unitIndex / (totalUnits - 1);
   const frontPref = (4 - valueScore(student.visibility)) / 3;
-  return 1 - Math.abs(pos - frontPref) * 0.55;
+  let score = 1 - Math.abs(pos - frontPref) * 0.55;
+  if (student.nearTeacher) {
+    const teacherPos = teacherDeskAtFront ? 0 : 1;
+    score += (1 - Math.abs(pos - teacherPos)) * 0.3;
+  }
+  return score;
 }
 
 function penalty(groups: Student[][], constraints: Constraint[]) {
@@ -90,12 +100,12 @@ function penalty(groups: Student[][], constraints: Constraint[]) {
   return { hardViolations: hard, softViolations: soft };
 }
 
-function scoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: Set<string>) {
+function scoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: Set<string>, teacherDeskAtFront: boolean) {
   const total = groups.length;
   let vis = 0, beh = 0, locked = 0;
   groups.forEach((g, gi) => {
     g.forEach((s) => {
-      vis += seatQuality(s, gi, total) * 100;
+      vis += seatQuality(s, gi, total, teacherDeskAtFront) * 100;
       beh += 100 - (valueScore(s.behavior) - 1) * 8;
       if (lockedIds.has(s.id)) locked++;
     });
@@ -132,13 +142,15 @@ export interface GenParams {
   currentGroups: Student[][];
   currentRotations: number[];
   count?: number;
+  targetGroupSize?: number;
+  teacherDeskAtFront?: boolean;
 }
 
 export function generateArrangements(params: GenParams): Arrangement[] {
-  const { students, constraints, layout, lockedIds, currentGroups, currentRotations, count = 5 } = params;
+  const { students, constraints, layout, lockedIds, currentGroups, currentRotations, count = 5, targetGroupSize, teacherDeskAtFront = true } = params;
   if (students.length === 0) return [];
 
-  const capacities = getCapacities(students.length, layout);
+  const capacities = getCapacities(students.length, layout, targetGroupSize);
   const totalUnits = capacities.length;
   const results: Arrangement[] = [];
 
@@ -153,14 +165,12 @@ export function generateArrangements(params: GenParams): Arrangement[] {
       Array(capacities[gi]).fill(null)
     );
 
-    // Place locked students at their pinned positions
     for (const s of students) {
       if (!lockedIds.has(s.id)) continue;
       const p = lockedPlacement.get(s.id);
       if (p && p[0] < groups.length && p[1] < groups[p[0]].length) groups[p[0]][p[1]] = s;
     }
 
-    // Sort unplaced by visibility (high first) then shuffle for variety
     const unplaced = shuffle(students.filter((s) => !lockedIds.has(s.id)), rng);
     unplaced.sort((a, b) => valueScore(b.visibility) - valueScore(a.visibility));
     const shuffled = shuffle(unplaced, rng);
@@ -174,9 +184,16 @@ export function generateArrangements(params: GenParams): Arrangement[] {
       choices.sort((a, b) => {
         const aConflict = wouldConflict(student, a.g.filter(Boolean) as Student[], constraints);
         const bConflict = wouldConflict(student, b.g.filter(Boolean) as Student[], constraints);
-        // hard conflicts first, then soft, then none
         const conflictScore = (c: "hard" | "soft" | false) => c === "hard" ? 2 : c === "soft" ? 1 : 0;
         if (conflictScore(aConflict) !== conflictScore(bConflict)) return conflictScore(aConflict) - conflictScore(bConflict);
+
+        if (student.nearTeacher) {
+          const teacherPos = teacherDeskAtFront ? 0 : totalUnits - 1;
+          const aDist = Math.abs(a.gi - teacherPos);
+          const bDist = Math.abs(b.gi - teacherPos);
+          if (aDist !== bDist) return aDist - bDist;
+        }
+
         const aB = a.g.filter(Boolean).filter((s) => (s as Student).behavior === "high").length;
         const bB = b.g.filter(Boolean).filter((s) => (s as Student).behavior === "high").length;
         if (aB !== bB) return aB - bB;
@@ -190,7 +207,7 @@ export function generateArrangements(params: GenParams): Arrangement[] {
 
     const clean = groups.map((g) => g.filter(Boolean) as Student[]);
     const rotations = clean.map((_, gi) => currentRotations[gi] ?? 0);
-    const m = scoreGroups(clean, constraints, lockedIds);
+    const m = scoreGroups(clean, constraints, lockedIds, teacherDeskAtFront);
     results.push({ id: crypto.randomUUID(), name: `Option ${String.fromCharCode(65 + i)}`, groups: clean, rotations, ...m });
   }
 
@@ -198,6 +215,6 @@ export function generateArrangements(params: GenParams): Arrangement[] {
   return results.slice(0, count);
 }
 
-export function rescoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: Set<string>) {
-  return scoreGroups(groups, constraints, lockedIds);
+export function rescoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: Set<string>, teacherDeskAtFront = true) {
+  return scoreGroups(groups, constraints, lockedIds, teacherDeskAtFront);
 }

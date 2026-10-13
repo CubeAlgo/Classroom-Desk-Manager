@@ -922,35 +922,263 @@ a { color: inherit; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   GROUP MAKER (placeholder)
+   MUSIC PLAYER
    ═══════════════════════════════════════════════════════════════ */
 
-.placeholder-main { max-width: 1080px; margin: 0 auto; padding: 80px 24px; }
-.placeholder-main h1 { font-size: 48px; line-height: 1.03; margin: 16px 0; }
-.placeholder-main > p { max-width: 450px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.header-right { display: flex; align-items: center; gap: 14px; }
 
-.placeholder-card {
-  margin-top: 48px;
-  max-width: 680px;
-  display: flex;
-  gap: 22px;
-  padding: 30px;
+.music-toggle {
+  width: 34px; height: 34px;
   border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--panel-2);
-}
-.placeholder-icon {
-  width: 56px; height: 56px;
-  border-radius: 13px;
-  display: grid; place-items: center;
-  background: var(--p-50);
+  border-radius: 50%;
+  background: var(--panel);
   color: var(--p-600);
-  font-size: 28px;
-  flex-shrink: 0;
+  font-size: 16px;
+  display: grid; place-items: center;
+  transition: all .15s ease;
 }
-.placeholder-card h2 { font-size: 25px; margin-bottom: 8px; }
-.placeholder-card p { color: var(--muted); font-size: 13px; line-height: 1.6; }
-.placeholder-card .text-button { margin-top: 16px; }
+.music-toggle:hover { background: var(--p-50); border-color: var(--p-400); }
+
+/* ═══════════════════════════════════════════════════════════════
+   TEACHER DESK (on classroom canvas)
+   ═══════════════════════════════════════════════════════════════ */
+
+.teacher-desk {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  padding: 8px 16px;
+  border: 2px solid var(--p-600);
+  border-radius: 10px;
+  background: var(--p-50);
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--p-600);
+  z-index: 0;
+}
+.teacher-desk.desk-front { top: 8px; }
+.teacher-desk.desk-back  { bottom: 8px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   NEAR-TEACHER CHECKBOX
+   ═══════════════════════════════════════════════════════════════ */
+
+.near-teacher-toggle {
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.near-teacher-toggle input { display: none; }
+.check-mark {
+  width: 20px; height: 20px;
+  border: 1.5px solid var(--line);
+  border-radius: 5px;
+  background: var(--n-50);
+  display: grid; place-items: center;
+  transition: all .15s ease;
+}
+.near-teacher-toggle input:checked + .check-mark {
+  background: var(--p-600);
+  border-color: var(--p-600);
+  color: white;
+}
+.near-teacher-toggle input:checked + .check-mark::after {
+  content: "★";
+  font-size: 11px;
+}
+
+/* Near-teacher badge on seat */
+.near-teacher-badge {
+  background: var(--amber) !important;
+  color: white !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONSTRAINT ADD ROW
+   ═══════════════════════════════════════════════════════════════ */
+
+.constraint-add-row {
+  display: grid;
+  grid-template-columns: 1fr 28px 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px dashed var(--n-300);
+  border-radius: 10px;
+  background: var(--n-50);
+}
+.constraint-add-row select {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text);
+}
+.constraint-add-row .constraint-strength {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GROUP MAKER
+   ═══════════════════════════════════════════════════════════════ */
+
+.gm-main { max-width: 1080px; margin: 0 auto; padding: 48px 24px 60px; }
+
+.gm-intro {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 24px;
+}
+.gm-intro h1 { font-size: 38px; line-height: 1.05; margin: 14px 0 12px; }
+.gm-intro p { max-width: 460px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+
+.gm-class-picker { margin-top: 28px; }
+.gm-class-picker h2 { font-size: 22px; margin-bottom: 16px; }
+
+.gm-class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.gm-class-card {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 20px;
+  background: var(--panel-2);
+  text-align: left;
+  cursor: pointer;
+  transition: all .15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gm-class-card:hover { border-color: var(--n-300); background: var(--panel); }
+.gm-class-card h3 { font-size: 18px; }
+.gm-class-go { font-size: 11px; font-weight: 700; color: var(--p-600); margin-top: 8px; }
+
+.gm-workspace { margin-top: 24px; }
+
+.gm-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-2);
+  margin-bottom: 20px;
+}
+.gm-class-info h2 { font-size: 20px; margin-top: 4px; }
+
+.gm-size-control { flex: 0 0 auto; }
+.gm-size-buttons {
+  display: flex;
+  gap: 4px;
+  background: var(--n-100);
+  border-radius: 10px;
+  padding: 4px;
+}
+.gm-size-buttons button {
+  width: 38px; height: 36px;
+  border: 0; border-radius: 8px;
+  background: transparent;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--n-500);
+  transition: all .15s ease;
+}
+.gm-size-buttons button.selected {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.gm-results { display: grid; gap: 20px; }
+
+.gm-candidates {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gm-candidate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.gm-candidate:hover { border-color: var(--n-300); }
+.gm-candidate.selected {
+  border-color: var(--p-400);
+  background: var(--p-50);
+  box-shadow: 0 2px 10px rgba(40,111,92,.08);
+}
+.gm-candidate-score {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: Georgia, serif;
+  color: var(--p-600);
+}
+.gm-candidate-name { font-size: 12px; font-weight: 700; }
+
+.gm-groups-display {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-2);
+  padding: 20px;
+}
+.gm-groups-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.gm-groups-header h3 { font-size: 18px; }
+.gm-stat { font-size: 12px; font-weight: 700; color: var(--p-600); }
+
+.gm-groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+.gm-group-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--panel);
+}
+.gm-group-num {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--n-400);
+}
+.gm-group-members { margin-top: 8px; display: grid; gap: 6px; }
+.gm-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--n-50);
+}
+.gm-member-name { font-size: 12px; font-weight: 600; }
 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE
@@ -989,10 +1217,13 @@ a { color: inherit; }
   .setup-main .panel { margin-bottom: 14px; }
 
   .student-list-header, .student-row {
-    grid-template-columns: 1fr 100px 100px 34px;
+    grid-template-columns: 1fr 90px 90px 40px 34px;
   }
   .student-tags { display: none; }
 
   .planner-subheader { flex-direction: column; align-items: flex-start; }
   .placeholder-main h1 { font-size: 38px; }
+  .gm-intro h1 { font-size: 32px; }
+  .gm-controls { flex-direction: column; align-items: stretch; }
+  .gm-size-buttons { justify-content: center; }
 }

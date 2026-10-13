@@ -3,11 +3,13 @@ import { supabase } from "./supabase";
 export type LayoutType = "pairs" | "groups";
 export type Level = "low" | "medium" | "high";
 export type ConstraintStrength = "hard" | "soft";
+export type TeacherDeskPosition = "front" | "back";
 
 export interface ClassRow {
   id: string;
   name: string;
   layout: LayoutType;
+  teacher_desk_position: TeacherDeskPosition;
   created_at: string;
 }
 
@@ -17,6 +19,7 @@ export interface StudentRow {
   name: string;
   visibility: Level;
   behavior: Level;
+  near_teacher: boolean;
   sort_order: number;
   created_at: string;
 }
@@ -52,17 +55,17 @@ export async function fetchClasses(): Promise<ClassRow[]> {
   return data as ClassRow[];
 }
 
-export async function createClass(name: string, layout: LayoutType): Promise<ClassRow> {
+export async function createClass(name: string, layout: LayoutType, teacherDeskPosition: TeacherDeskPosition = "front"): Promise<ClassRow> {
   const { data, error } = await supabase
     .from("classes")
-    .insert({ name, layout })
+    .insert({ name, layout, teacher_desk_position: teacherDeskPosition })
     .select()
     .single();
   if (error) throw error;
   return data as ClassRow;
 }
 
-export async function updateClass(id: string, patch: Partial<Pick<ClassRow, "name" | "layout">>): Promise<void> {
+export async function updateClass(id: string, patch: Partial<Pick<ClassRow, "name" | "layout" | "teacher_desk_position">>): Promise<void> {
   const { error } = await supabase.from("classes").update(patch).eq("id", id);
   if (error) throw error;
 }
@@ -91,7 +94,7 @@ export async function createStudent(
 ): Promise<StudentRow> {
   const { data, error } = await supabase
     .from("students")
-    .insert({ class_id: classId, name, sort_order: sortOrder, visibility: "medium", behavior: "medium" })
+    .insert({ class_id: classId, name, sort_order: sortOrder, visibility: "medium", behavior: "medium", near_teacher: false })
     .select()
     .single();
   if (error) throw error;
@@ -100,7 +103,7 @@ export async function createStudent(
 
 export async function updateStudent(
   id: string,
-  patch: Partial<Pick<StudentRow, "name" | "visibility" | "behavior">>
+  patch: Partial<Pick<StudentRow, "name" | "visibility" | "behavior" | "near_teacher">>
 ): Promise<void> {
   const { error } = await supabase.from("students").update(patch).eq("id", id);
   if (error) throw error;

@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 import {
   fetchStudents, createStudent, updateStudent, deleteStudent,
   fetchConstraints, createConstraint, updateConstraint, deleteConstraint,
-  updateClass, type StudentRow, type ConstraintRow, type ClassRow, type Level, type ConstraintStrength,
+  updateClass, type StudentRow, type ConstraintRow, type ClassRow, type Level, type ConstraintStrength, type TeacherDeskPosition,
 } from "../db";
-import { VIS_COLORS, BEH_COLORS, LEVEL_LABELS } from "../lib";
+import { VIS_COLORS, BEH_COLORS, VIS_LABELS, BEH_LABELS } from "../lib";
 import type { Page } from "../App";
 import { SiteHeader } from "./Tools";
 
@@ -24,6 +24,11 @@ export function Setup({
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState(classData?.name ?? "");
   const [layout, setLayout] = useState(classData?.layout ?? "pairs");
+  const [deskPos, setDeskPos] = useState<TeacherDeskPosition>(classData?.teacher_desk_position ?? "front");
+  const [addConstraintOpen, setAddConstraintOpen] = useState(false);
+  const [newA, setNewA] = useState("");
+  const [newB, setNewB] = useState("");
+  const [newStrength, setNewStrength] = useState<ConstraintStrength>("hard");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,18 +44,18 @@ export function Setup({
   useEffect(() => {
     setName(classData?.name ?? "");
     setLayout(classData?.layout ?? "pairs");
+    setDeskPos(classData?.teacher_desk_position ?? "front");
   }, [classData]);
 
-  // Debounced class name/layout save
   useEffect(() => {
-    if (!classData || name === classData.name && layout === classData.layout) return;
+    if (!classData || name === classData.name && layout === classData.layout && deskPos === classData.teacher_desk_position) return;
     const t = setTimeout(() => {
-      updateClass(classId, { name, layout }).then(() => {
-        onClassUpdated({ ...classData, name, layout });
+      updateClass(classId, { name, layout, teacher_desk_position: deskPos }).then(() => {
+        onClassUpdated({ ...classData, name, layout, teacher_desk_position: deskPos });
       }).catch(console.error);
     }, 600);
     return () => clearTimeout(t);
-  }, [name, layout, classData, classId, onClassUpdated]);
+  }, [name, layout, deskPos, classData, classId, onClassUpdated]);
 
   const handleAddStudent = async () => {
     try {
@@ -59,7 +64,7 @@ export function Setup({
     } catch (e) { console.error(e); }
   };
 
-  const handleUpdateStudent = async (id: string, patch: Partial<Pick<StudentRow, "name" | "visibility" | "behavior">>) => {
+  const handleUpdateStudent = async (id: string, patch: Partial<Pick<StudentRow, "name" | "visibility" | "behavior" | "near_teacher">>) => {
     setStudents((prev) => prev.map((s) => s.id === id ? { ...s, ...patch } : s));
     try { await updateStudent(id, patch); } catch (e) { console.error(e); }
   };
@@ -71,10 +76,14 @@ export function Setup({
   };
 
   const handleAddConstraint = async () => {
-    if (students.length < 2) return;
+    if (!newA || !newB || newA === newB) return;
     try {
-      const c = await createConstraint(classId, students[0].id, students[1].id, "hard");
+      const c = await createConstraint(classId, newA, newB, newStrength);
       setConstraints((prev) => [...prev, c]);
+      setAddConstraintOpen(false);
+      setNewA("");
+      setNewB("");
+      setNewStrength("hard");
     } catch (e) { console.error(e); }
   };
 
@@ -88,10 +97,20 @@ export function Setup({
     try { await deleteConstraint(id); } catch (e) { console.error(e); }
   };
 
+  const openAddConstraint = () => {
+    if (students.length < 2) return;
+    setNewA(students[0].id);
+    setNewB(students[1].id);
+    setAddConstraintOpen(true);
+  };
+
   return (
     <div className="page">
       <SiteHeader active="classes" onNavigate={onNavigate} />
-      <div className="setup-nav"><button className="back-btn" onClick={() => onNavigate("hub")}>← All classes</button><button className="text-button filled" onClick={() => onNavigate("planner", classId)} disabled={students.length === 0}>Review classroom map →</button></div>
+      <div className="setup-nav">
+        <button className="back-btn" onClick={() => onNavigate("hub")}>← All classes</button>
+        <button className="text-button filled" onClick={() => onNavigate("planner", classId)} disabled={students.length === 0}>Review classroom map →</button>
+      </div>
 
       <main className="setup-main">
         <section className="panel">
@@ -108,6 +127,11 @@ export function Setup({
             <button className={layout === "pairs" ? "selected" : ""} onClick={() => setLayout("pairs")}>Pairs (2 seats)</button>
             <button className={layout === "groups" ? "selected" : ""} onClick={() => setLayout("groups")}>Groups (up to 5)</button>
           </div>
+          <label className="field-label">Teacher desk position</label>
+          <div className="segmented">
+            <button className={deskPos === "front" ? "selected" : ""} onClick={() => setDeskPos("front")}>Front of room</button>
+            <button className={deskPos === "back" ? "selected" : ""} onClick={() => setDeskPos("back")}>Back of room</button>
+          </div>
           <div className="mini-stat-row">
             <div className="mini-stat"><span>{students.length}</span><small>students</small></div>
             <div className="mini-stat"><span>{constraints.length}</span><small>rules</small></div>
@@ -118,7 +142,7 @@ export function Setup({
           <div className="panel-heading">
             <div>
               <h2>Students</h2>
-              <p>Rate each student's visibility and behavior: low, medium, or high.</p>
+              <p>Rate visibility and behavior. Students marked "energetic" can be placed near the teacher's desk.</p>
             </div>
             <button className="icon-btn" onClick={handleAddStudent} title="Add student">+</button>
           </div>
@@ -133,7 +157,7 @@ export function Setup({
                 <span>Name</span>
                 <span>Visibility</span>
                 <span>Behavior</span>
-                <span></span>
+                <span>Near teacher</span>
                 <span></span>
               </div>
               {students.map((s) => (
@@ -148,27 +172,27 @@ export function Setup({
                     onChange={(e) => handleUpdateStudent(s.id, { visibility: e.target.value as Level })}
                     style={{ color: VIS_COLORS[s.visibility] }}
                   >
-                    <option value="low">Low — needs front</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High — any seat</option>
+                    <option value="low">{VIS_LABELS.low}</option>
+                    <option value="medium">{VIS_LABELS.medium}</option>
+                    <option value="high">{VIS_LABELS.high}</option>
                   </select>
                   <select
                     value={s.behavior}
                     onChange={(e) => handleUpdateStudent(s.id, { behavior: e.target.value as Level })}
                     style={{ color: BEH_COLORS[s.behavior] }}
                   >
-                    <option value="low">Low — calm</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High — active</option>
+                    <option value="low">{BEH_LABELS.low}</option>
+                    <option value="medium">{BEH_LABELS.medium}</option>
+                    <option value="high">{BEH_LABELS.high}</option>
                   </select>
-                  <div className="student-tags">
-                    <span className="tag" style={{ background: VIS_COLORS[s.visibility] + "1a", color: VIS_COLORS[s.visibility] }}>
-                      Vis: {LEVEL_LABELS[s.visibility]}
-                    </span>
-                    <span className="tag" style={{ background: BEH_COLORS[s.behavior] + "1a", color: BEH_COLORS[s.behavior] }}>
-                      Beh: {LEVEL_LABELS[s.behavior]}
-                    </span>
-                  </div>
+                  <label className="near-teacher-toggle">
+                    <input
+                      type="checkbox"
+                      checked={s.near_teacher}
+                      onChange={(e) => handleUpdateStudent(s.id, { near_teacher: e.target.checked })}
+                    />
+                    <span className="check-mark" />
+                  </label>
                   <button className="delete-student" onClick={() => handleDeleteStudent(s.id)} title="Remove">×</button>
                 </div>
               ))}
@@ -180,13 +204,32 @@ export function Setup({
           <div className="panel-heading">
             <div>
               <h2>Keep apart</h2>
-              <p>Choose "Don't put together" (hard rule) or "Try not to put together" (soft preference).</p>
+              <p>Choose "Must keep apart" (strict rule) or "Prefer apart" (soft preference).</p>
             </div>
-            <button className="icon-btn" onClick={handleAddConstraint} title="Add rule" disabled={students.length < 2}>+</button>
+            <button className="icon-btn" onClick={openAddConstraint} title="Add rule" disabled={students.length < 2}>+</button>
           </div>
-          {constraints.length === 0 ? (
-            <div className="empty-hint">{students.length < 2 ? "Add at least 2 students first." : "No separation rules yet."}</div>
-          ) : (
+
+          {addConstraintOpen && (
+            <div className="constraint-add-row">
+              <select value={newA} onChange={(e) => setNewA(e.target.value)}>
+                {students.map((s) => <option key={s.id} value={s.id}>{s.name || "Unnamed"}</option>)}
+              </select>
+              <span className="constraint-arrow">↔</span>
+              <select value={newB} onChange={(e) => setNewB(e.target.value)}>
+                {students.map((s) => <option key={s.id} value={s.id}>{s.name || "Unnamed"}</option>)}
+              </select>
+              <select value={newStrength} onChange={(e) => setNewStrength(e.target.value as ConstraintStrength)}>
+                <option value="hard">Must keep apart</option>
+                <option value="soft">Prefer apart</option>
+              </select>
+              <button className="text-button filled" onClick={handleAddConstraint} disabled={newA === newB}>Add</button>
+              <button className="ghost-pill" onClick={() => setAddConstraintOpen(false)}>Cancel</button>
+            </div>
+          )}
+
+          {constraints.length === 0 && !addConstraintOpen ? (
+            <div className="empty-hint">{students.length < 2 ? "Add at least 2 students first." : "No separation rules yet. Click + to add one."}</div>
+          ) : constraints.length > 0 ? (
             <div className="constraint-list">
               {constraints.map((c) => (
                 <div key={c.id} className="constraint-row">
@@ -202,14 +245,14 @@ export function Setup({
                     value={c.strength}
                     onChange={(e) => handleUpdateConstraint(c.id, { strength: e.target.value as ConstraintStrength })}
                   >
-                    <option value="hard">Don't put together</option>
-                    <option value="soft">Try not to put together</option>
+                    <option value="hard">Must keep apart</option>
+                    <option value="soft">Prefer apart</option>
                   </select>
                   <button className="delete-constraint" onClick={() => handleDeleteConstraint(c.id)}>×</button>
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
         </section>
       </main>
     </div>

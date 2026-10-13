@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import { musicController } from "../music";
 import type { Page } from "../App";
 
 export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: string) => void }) {
@@ -41,10 +43,32 @@ export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: strin
   );
 }
 
+export function MusicToggle() {
+  const [muted, setMuted] = useState(musicController.muted);
+
+  useEffect(() => {
+    return musicController.subscribe(setMuted);
+  }, []);
+
+  return (
+    <button
+      className="music-toggle"
+      onClick={() => musicController.toggleMute()}
+      title={muted ? "Unmute music" : "Mute music"}
+      aria-label={muted ? "Unmute music" : "Mute music"}
+    >
+      {muted ? "\u266A\u0338" : "\u266A"}
+    </button>
+  );
+}
+
 export function SiteHeader({ active, onNavigate }: { active: "tools" | "classes"; onNavigate: (page: Page, classId?: string) => void }) {
   return <header className="site-header">
     <button className="brand-lockup" onClick={() => onNavigate("tools")}><span className="brand-mark">d.</span><span>Desk planner<small>A THOUGHTFUL SEAT FOR EVERYONE</small></span></button>
     <nav className="site-nav"><button className={active === "tools" ? "active" : ""} onClick={() => onNavigate("tools")}><span>▦</span> Tools</button><button className={active === "classes" ? "active" : ""} onClick={() => onNavigate("hub")}><span>♧</span> My classes</button></nav>
-    <div className="saved-status"><i /> Saved on this device</div>
+    <div className="header-right">
+      <MusicToggle />
+      <div className="saved-status"><i /> Saved on this device</div>
+    </div>
   </header>;
 }

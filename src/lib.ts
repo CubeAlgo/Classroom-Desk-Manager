@@ -7,11 +7,23 @@ export const VIS_COLORS: Record<Level, string> = {
   high:   "#3a8c5c",
 };
 
-// Behavior: low = calm = green, high = disruptive = red
+// Behavior: low = calm/green, high = disruptive/red
 export const BEH_COLORS: Record<Level, string> = {
   low:    "#3a8c5c",
   medium: "#b08030",
   high:   "#d04a4a",
+};
+
+export const VIS_LABELS: Record<Level, string> = {
+  low: "Low — needs front",
+  medium: "Medium",
+  high: "High — any seat",
+};
+
+export const BEH_LABELS: Record<Level, string> = {
+  low: "Calm — focused",
+  medium: "Medium",
+  high: "Energetic — needs watch",
 };
 
 export const LEVEL_LABELS: Record<Level, string> = {

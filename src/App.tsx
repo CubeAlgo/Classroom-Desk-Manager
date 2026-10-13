@@ -5,6 +5,7 @@ import { Setup } from "./components/Setup";
 import { Planner } from "./components/Planner";
 import { Tools } from "./components/Tools";
 import { GroupMaker } from "./components/GroupMaker";
+import { musicController } from "./music";
 import "./App.css";
 
 export type Page = "tools" | "hub" | "setup" | "planner" | "groupmaker";
@@ -14,6 +15,12 @@ function App() {
   const [classId, setClassId] = useState<string | null>(null);
   const [classData, setClassData] = useState<ClassRow | null>(null);
   const [allClasses, setAllClasses] = useState<ClassRow[]>([]);
+
+  // Start global music controller once — survives all page navigations
+  useEffect(() => {
+    musicController.start();
+    return () => musicController.stop();
+  }, []);
 
   const refreshClasses = useCallback(async () => {
     try {
@@ -44,7 +51,6 @@ function App() {
     setAllClasses((prev) => prev.map((c) => c.id === cls.id ? cls : c));
   };
 
-  // Keep classData fresh when navigating
   useEffect(() => {
     if (classId) {
       const found = allClasses.find((c) => c.id === classId);
@@ -58,7 +64,7 @@ function App() {
   if (page === "hub") return <Hub onNavigate={navigate} />;
   if (page === "setup" && classId) return <Setup classId={classId} classData={classData} onNavigate={navigate} onClassUpdated={handleClassUpdated} />;
   if (page === "planner" && classId) return <Planner classId={classId} classData={classData} onNavigate={navigate} />;
-  if (page === "groupmaker") return <GroupMaker onNavigate={navigate} />;
+  if (page === "groupmaker") return <GroupMaker onNavigate={navigate} classId={classId ?? undefined} />;
   return <Tools onNavigate={navigate} />;
 }
 

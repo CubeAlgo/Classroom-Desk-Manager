@@ -1,15 +1,15 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { fetchStudents, fetchConstraints, type ConstraintRow, type ClassRow } from "../db";
+import { fetchStudents, fetchConstraints, type ConstraintRow, type ClassRow, type StudentRow, updateClass } from "../db";
 import { generateArrangements, rescoreGroups, type Student, type Constraint, type Arrangement, type LayoutType } from "../engine";
 import { VIS_COLORS, BEH_COLORS } from "../lib";
 import type { Page } from "../App";
 import { SiteHeader } from "./Tools";
 
-// ── Types ──────────────────────────────────────────────────────────
+interface DeskPosition { x: number; y: number; }
 
-interface DeskPosition { x: number; y: number; } // percent of canvas
-
-// ── Planner ────────────────────────────────────────────────────────
+// Teacher desk Y positions: top strip or bottom strip (percent of canvas)
+const TEACHER_FRONT_Y = 4;
+const TEACHER_BACK_Y = 88;
 
 export function Planner({
   classId, classData, onNavigate,
@@ -18,7 +18,7 @@ export function Planner({
   classData: ClassRow | null;
   onNavigate: (page: Page, classId?: string) => void;
 }) {
-  const [students, setStudents] = useState<ReturnType<typeof fetchStudents> extends Promise<infer T> ? T : never>([]);
+  const [students, setStudents] = useState<StudentRow[]>([]);
   const [constraints, setConstraints] = useState<ConstraintRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [arrangements, setArrangements] = useState<Arrangement[]>([]);
@@ -27,8 +27,9 @@ export function Planner({
   const [currentRotations, setCurrentRotations] = useState<number[]>([]);
   const [deskPositions, setDeskPositions] = useState<DeskPosition[]>([]);
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
+  // Teacher desk X position (0-100 percent). Y is determined by front/back setting.
+  const [teacherDeskX, setTeacherDeskX] = useState(35);
 
-  // Use ref so doGenerate always sees fresh values without needing them in deps
   const studentsRef = useRef(students);
   const constraintsRef = useRef(constraints);
   const lockedRef = useRef(lockedIds);
@@ -41,9 +42,11 @@ export function Planner({
   useEffect(() => { rotationsRef.current = currentRotations; }, [currentRotations]);
 
   const layout: LayoutType = classData?.layout ?? "pairs";
+  const teacherDeskAtFront: boolean = classData?.teacher_desk_position !== "back";
+  const teacherDeskY = teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y;
 
   const toEngineStudents = (rows: typeof students): Student[] =>
-    rows.map((s) => ({ id: s.id, name: s.name, visibility: s.visibility, behavior: s.behavior }));
+    rows.map((s) => ({ id: s.id, name: s.name, visibility: s.visibility, behavior: s.behavior, nearTeacher: s.near_teacher }));
 
   const toEngineConstraints = (rows: ConstraintRow[]): Constraint[] =>
     rows.map((c) => ({ aId: c.student_a_id, bId: c.student_b_id, strength: c.strength }));
@@ -62,11 +65,13 @@ export function Planner({
 
   useEffect(() => { load(); }, [load]);
 
-  const buildInitialPositions = (count: number): DeskPosition[] =>
-    Array.from({ length: count }, (_, i) => ({
+  const buildInitialPositions = (count: number): DeskPosition[] => {
+    const yStart = teacherDeskAtFront ? 22 : 12;
+    return Array.from({ length: count }, (_, i) => ({
       x: 10 + (i % 4) * 22,
-      y: 10 + Math.floor(i / 4) * 35,
+      y: yStart + Math.floor(i / 4) * 32,
     }));
+  };
 
   const doGenerate = useCallback(() => {
     const s = studentsRef.current;
@@ -81,6 +86,7 @@ export function Planner({
       lockedIds: lockedRef.current,
       currentGroups: groupsRef.current,
       currentRotations: rotationsRef.current,
+      teacherDeskAtFront,
     });
     setArrangements(results);
     if (results.length > 0) {
@@ -92,7 +98,7 @@ export function Planner({
       );
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layout]);
+  }, [layout, teacherDeskAtFront]);
 
   useEffect(() => {
     if (!loading && students.length > 0 && arrangements.length === 0) doGenerate();
@@ -133,7 +139,7 @@ export function Planner({
     }
     setCurrentGroups(newGroups);
     const ec = toEngineConstraints(constraintsRef.current);
-    const m = rescoreGroups(newGroups, ec, lockedIds);
+    const m = rescoreGroups(newGroups, ec, lockedIds, teacherDeskAtFront);
     setArrangements((prev) => prev.map((a) => a.id === selectedId ? { ...a, groups: newGroups, ...m } : a));
   };
 
@@ -154,8 +160,27 @@ export function Planner({
     });
   };
 
+  const handleMoveTeacherDesk = (x: number) => {
+    // Constrain: keep desk within 10%-70% horizontally (avoid corners)
+    const clamped = Math.max(10, Math.min(70, x));
+    setTeacherDeskX(clamped);
+  };
+
+  const handleToggleTeacherDeskSide = () => {
+    const newPos = teacherDeskAtFront ? "back" : "front";
+    updateClass(classId, { teacher_desk_position: newPos }).catch(console.error);
+    // Optimistically update local state through parent — but we can also just
+    // force a refresh by updating classData in the parent via onNavigate hack.
+    // Simpler: just update our local view.
+    if (classData) {
+      const updated = { ...classData, teacher_desk_position: newPos };
+      // Notify parent through navigate (stays on same page)
+      onNavigate("planner", classId);
+    }
+  };
+
   const ec = toEngineConstraints(constraints);
-  const insight = selected ? rescoreGroups(currentGroups, ec, lockedIds) : null;
+  const insight = selected ? rescoreGroups(currentGroups, ec, lockedIds, teacherDeskAtFront) : null;
 
   if (loading) {
     return <div className="site-shell"><SiteHeader active="classes" onNavigate={onNavigate} /><div className="loading-text" style={{ padding: "80px 32px" }}>Loading planner…</div></div>;
@@ -180,6 +205,9 @@ export function Planner({
             <span className="legend-dot amber" style={{ marginLeft: 10 }} /> Soft conflict
             <span className="legend-dot red" style={{ marginLeft: 10 }} /> Hard conflict
           </div>
+          <button className="ghost-pill" onClick={handleToggleTeacherDeskSide}>
+            Desk: {teacherDeskAtFront ? "Front" : "Back"} (swap)
+          </button>
           <button className="text-button filled" onClick={doGenerate}>Regenerate</button>
         </div>
       </div>
@@ -188,6 +216,11 @@ export function Planner({
         <div className="planner-canvas-col">
           <div className="board-strip">WHITEBOARD</div>
           <div className="classroom-canvas" id="classroom-canvas">
+            <TeacherDesk
+              x={teacherDeskX}
+              y={teacherDeskY}
+              onMove={handleMoveTeacherDesk}
+            />
             {currentGroups.length === 0 ? (
               <div className="empty-classroom">Click Regenerate to create seating arrangements.</div>
             ) : (
@@ -251,7 +284,7 @@ export function Planner({
                   {insight.softViolations > 0 && <li>{insight.softViolations} soft preference conflict{insight.softViolations === 1 ? "" : "s"} remain.</li>}
                   {lockedIds.size > 0 && <li>{lockedIds.size} locked student{lockedIds.size === 1 ? "" : "s"} kept in place.</li>}
                 </ul>
-                <p className="insight-note">Tip: click any seat to lock it, then Regenerate to keep those students in place.</p>
+                <p className="insight-note">Tip: click any seat to lock it, then Regenerate to keep those students in place. Drag the teacher's desk to reposition it along the front or back wall.</p>
               </>
             ) : (
               <p className="muted-text">Select a candidate above to see what was prioritized.</p>
@@ -259,6 +292,49 @@ export function Planner({
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Teacher Desk (draggable horizontally along front or back wall) ──
+
+function TeacherDesk({ x, y, onMove }: { x: number; y: number; onMove: (x: number) => void }) {
+  const dragRef = useRef<{ startX: number; startXPercent: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setDragging(true);
+    dragRef.current = { startX: e.clientX, startXPercent: x };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    e.stopPropagation();
+    const canvas = document.getElementById("classroom-canvas");
+    const rect = canvas?.getBoundingClientRect();
+    if (!rect) return;
+    const dx = ((e.clientX - dragRef.current.startX) / rect.width) * 100;
+    onMove(dragRef.current.startXPercent + dx);
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setDragging(false);
+    dragRef.current = null;
+  };
+
+  return (
+    <div
+      className={`teacher-desk ${dragging ? "dragging" : ""}`}
+      style={{ left: `${x}%`, top: `${y}%` }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      title="Drag to reposition along the wall"
+    >
+      <span>Teacher's Desk</span>
     </div>
   );
 }
@@ -303,14 +379,12 @@ function DraggableTableGroup({
     }
   }
 
-  // Seat drag-and-drop
   const handleSeatDragStart = (si: number) => { seatDragRef.current = { group: groupIndex, seat: si }; };
   const handleSeatDrop = (si: number) => {
     if (seatDragRef.current) { onMoveStudent(seatDragRef.current.group, seatDragRef.current.seat, groupIndex, si); seatDragRef.current = null; }
     setSeatDragOver(null);
   };
 
-  // Table rotation (pointer drag on rotate handle)
   const getAngle = (e: React.PointerEvent) => {
     const el = tableRef.current; if (!el) return 0;
     const r = el.getBoundingClientRect();
@@ -328,10 +402,8 @@ function DraggableTableGroup({
   };
   const onRotateEnd = (e: React.PointerEvent) => { e.stopPropagation(); rotateRef.current = null; };
 
-  // Whole-desk drag (pointer drag on desk header)
   const onDeskDragStart = (e: React.PointerEvent) => {
-    // Only fire from the header/grab area, not from controls inside it
-    if ((e.target as HTMLElement).closest(".rotate-controls, .seat")) return;
+    if ((e.target as HTMLElement).closest(".rotate-controls, .seat, .teacher-desk")) return;
     e.stopPropagation();
     setIsDraggingDesk(true);
     const canvas = document.getElementById("classroom-canvas");
@@ -352,8 +424,8 @@ function DraggableTableGroup({
     const dx = ((e.clientX - deskDragRef.current.startX) / canvasRect.width) * 100;
     const dy = ((e.clientY - deskDragRef.current.startY) / canvasRect.height) * 100;
     onMoveDesk(groupIndex, {
-      x: Math.max(0, Math.min(85, deskDragRef.current.startPos.x + dx)),
-      y: Math.max(0, Math.min(85, deskDragRef.current.startPos.y + dy)),
+      x: Math.max(0, Math.min(80, deskDragRef.current.startPos.x + dx)),
+      y: Math.max(0, Math.min(82, deskDragRef.current.startPos.y + dy)),
     });
   };
   const onDeskDragEnd = (e: React.PointerEvent) => {
@@ -407,6 +479,7 @@ function DraggableTableGroup({
                   <div className="seat-badges">
                     <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
                     <span className="badge" style={{ background: BEH_COLORS[student.behavior] + "20", color: BEH_COLORS[student.behavior] }} title={`Behavior: ${student.behavior}`}>B</span>
+                    {student.nearTeacher && <span className="badge near-teacher-badge" title="Needs to sit near teacher">★</span>}
                     {isLocked && <span className="badge lock-badge">🔒</span>}
                     {conflict === "hard" && <span className="badge conflict-badge hard" title="Hard conflict — must separate">!</span>}
                     {conflict === "soft" && <span className="badge conflict-badge soft" title="Soft conflict — prefer separate">~</span>}
