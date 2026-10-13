@@ -370,7 +370,7 @@ function DraggableTableGroup({
   const groupIds = new Set(group.map((s) => s.id));
   const conflictMap = new Map<string, "hard" | "soft">();
   for (const c of constraints) {
-    if (groupIds.has(c.aId) && groupIds.has(c.bId)) {
+    if (c.strength !== "together" && groupIds.has(c.aId) && groupIds.has(c.bId)) {
       const sev = c.strength;
       const ea = conflictMap.get(c.aId);
       const eb = conflictMap.get(c.bId);

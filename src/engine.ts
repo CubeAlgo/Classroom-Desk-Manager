@@ -93,7 +93,9 @@ function penalty(groups: Student[][], constraints: Constraint[]) {
   let hard = 0, soft = 0;
   for (const c of constraints) {
     if (!unitMap.has(c.aId) || !unitMap.has(c.bId)) continue;
-    if (unitMap.get(c.aId) === unitMap.get(c.bId)) {
+    const same = unitMap.get(c.aId) === unitMap.get(c.bId);
+    if (c.strength === "together") { if (!same) soft++; continue; }
+    if (same) {
       if (c.strength === "hard") hard++; else soft++;
     }
   }
@@ -124,6 +126,7 @@ function scoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: 
 function wouldConflict(student: Student, group: Student[], constraints: Constraint[]): "hard" | "soft" | false {
   let result: "hard" | "soft" | false = false;
   for (const c of constraints) {
+    if (c.strength === "together") continue;
     const ids = new Set(group.map((s) => s.id));
     const matches = (c.aId === student.id && ids.has(c.bId)) || (c.bId === student.id && ids.has(c.aId));
     if (matches) {
@@ -132,6 +135,12 @@ function wouldConflict(student: Student, group: Student[], constraints: Constrai
     }
   }
   return result;
+}
+
+function togetherCount(student: Student, group: (Student | null)[], constraints: Constraint[]): number {
+  const ids = new Set(group.filter(Boolean).map((s) => (s as Student).id));
+  return constraints.filter((c) => c.strength === "together" &&
+    ((c.aId === student.id && ids.has(c.bId)) || (c.bId === student.id && ids.has(c.aId)))).length;
 }
 
 export interface GenParams {
@@ -186,6 +195,10 @@ export function generateArrangements(params: GenParams): Arrangement[] {
         const bConflict = wouldConflict(student, b.g.filter(Boolean) as Student[], constraints);
         const conflictScore = (c: "hard" | "soft" | false) => c === "hard" ? 2 : c === "soft" ? 1 : 0;
         if (conflictScore(aConflict) !== conflictScore(bConflict)) return conflictScore(aConflict) - conflictScore(bConflict);
+
+        const aT = togetherCount(student, a.g, constraints);
+        const bT = togetherCount(student, b.g, constraints);
+        if (aT !== bT) return bT - aT;
 
         if (student.nearTeacher) {
           const teacherPos = teacherDeskAtFront ? 0 : totalUnits - 1;

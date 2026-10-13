@@ -386,20 +386,6 @@ a { color: inherit; }
 .delete-inline { border: 0; background: transparent; color: var(--n-400); font-size: 18px; padding: 6px; transition: color .15s; }
 .delete-inline:hover { color: var(--red); }
 
-.create-card.compact {
-  margin-top: 20px;
-  display: grid;
-  grid-template-columns: 1.1fr 1.4fr .8fr auto;
-  align-items: end;
-  gap: 14px;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--panel-2);
-}
-.create-card.compact h2 { font-size: 18px; margin: 6px 0 0; }
-.create-card.compact .field-label { margin: 0 0 6px; }
-
 .hub-empty {
   border: 1px dashed var(--line);
   border-radius: 16px;
@@ -443,8 +429,9 @@ a { color: inherit; }
   max-width: 1080px;
   padding: 24px 24px 60px;
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
+  margin: 0 auto;
 }
 
 .panel {
@@ -456,9 +443,6 @@ a { color: inherit; }
   box-shadow: none;
 }
 
-.setup-main .panel:first-child { grid-column: 1; }
-.setup-main .panel:nth-child(2) { grid-column: 1; }
-.setup-main .panel:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
 
 .panel-heading {
   display: flex;
@@ -1184,6 +1168,166 @@ a { color: inherit; }
    RESPONSIVE
    ═══════════════════════════════════════════════════════════════ */
 
+/* ── Create class card ───────────────────────────────────────── */
+.create-card {
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 32px;
+  animation: rise .25s ease;
+}
+.create-card-intro h2 { font-size: 24px; margin: 10px 0 8px; line-height: 1.15; }
+.create-card-intro p { color: var(--muted); font-size: 13px; line-height: 1.55; }
+.create-card-fields { display: grid; gap: 18px; min-width: 0; }
+.create-card-fields .field-label { margin: 0 0 8px; }
+.create-card-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 18px;
+}
+.option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.option-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--n-50);
+  padding: 14px 16px;
+  color: var(--text);
+  transition: border-color .15s, background-color .15s, box-shadow .15s;
+}
+.option-card:hover { border-color: var(--p-400); }
+.option-card.selected { border-color: var(--p-600); background: var(--p-50); box-shadow: 0 0 0 3px var(--p-100); }
+.option-card b { display: block; font-size: 14px; }
+.option-card small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.option-radio { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--n-300); transition: border-color .15s, border-width .15s; }
+.option-card.selected .option-radio { border: 5px solid var(--p-600); }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ── Setup: class details + roster ───────────────────────────── */
+.class-details {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+}
+.class-details .field-label { margin: 0 0 6px; }
+.class-details-field { min-width: 0; }
+.class-details .mini-stat { min-width: 96px; padding: 8px 14px; }
+
+.add-student-bar { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
+.bulk-add { margin-top: 10px; display: grid; gap: 8px; animation: rise .2s ease; }
+.bulk-add textarea { resize: vertical; }
+.bulk-add-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.roster-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.roster-card {
+  display: grid;
+  grid-template-columns: 36px 1fr 34px 30px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 10px 10px 12px;
+  background: var(--panel);
+  transition: border-color .15s, box-shadow .15s;
+  animation: rise .2s ease;
+}
+.roster-card:hover { border-color: var(--n-300); box-shadow: var(--shadow-sm); }
+.roster-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--p-50); color: var(--p-700);
+  font: 600 15px Georgia, serif;
+}
+.roster-copy { min-width: 0; }
+.roster-name {
+  width: 100%; border: 1px solid transparent; background: transparent;
+  border-radius: 6px; padding: 3px 6px; margin-left: -6px;
+  font-weight: 700; font-size: 14px; color: var(--text);
+}
+.roster-name:hover { border-color: var(--line-soft); }
+.roster-name:focus { outline: none; border-color: var(--p-400); background: var(--n-50); }
+.roster-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; min-height: 18px; }
+.tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--n-100); color: var(--n-600); }
+.tag.red { background: var(--red-bg); color: var(--red); }
+.tag.amber { background: var(--amber-bg); color: var(--amber); }
+.tag.green { background: var(--green-bg); color: var(--green); }
+.roster-gear {
+  width: 34px; height: 34px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--n-50); color: var(--n-600);
+  display: grid; place-items: center;
+  transition: color .15s, border-color .15s, transform .3s;
+}
+.roster-gear:hover { color: var(--p-700); border-color: var(--p-400); transform: rotate(45deg); }
+.roster-card .delete-student { width: 30px; }
+.panel-heading p svg { vertical-align: -2px; }
+
+/* ── Student settings drawer ─────────────────────────────────── */
+.drawer-backdrop { position: fixed; inset: 0; background: rgba(42,58,52,.28); backdrop-filter: blur(3px); z-index: 50; animation: fade .2s ease; }
+.drawer {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: min(460px, 100vw);
+  background: var(--panel);
+  box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column;
+  animation: slide-in .25s ease;
+}
+.drawer-head { display: flex; justify-content: space-between; gap: 12px; padding: 22px 24px 16px; border-bottom: 1px solid var(--line-soft); }
+.drawer-head .section-kicker { display: inline-flex; align-items: center; gap: 6px; }
+.drawer-name { display: block; margin-top: 8px; width: 100%; border: 0; background: transparent; font: 500 24px Georgia, serif; color: var(--text); padding: 0; }
+.drawer-name:focus { outline: none; }
+.drawer-close { border: 0; background: var(--n-100); width: 34px; height: 34px; border-radius: 50%; font-size: 18px; color: var(--n-600); flex: none; }
+.drawer-close:hover { background: var(--n-200); }
+.drawer-body { flex: 1; overflow-y: auto; padding: 8px 24px 24px; }
+.drawer-section { margin-top: 18px; }
+.drawer-section .field-label { margin: 0 0 8px; }
+.drawer-hint { color: var(--muted); font-size: 11px; margin: -2px 0 8px; }
+.drawer-notes { resize: vertical; }
+.drawer-foot { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-top: 1px solid var(--line-soft); }
+.drawer-foot .drawer-hint { margin: 0; }
+.level-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.level-picker button {
+  display: flex; align-items: center; gap: 7px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--n-50);
+  padding: 9px 10px; font-size: 11px; font-weight: 600; color: var(--n-600); text-align: left;
+  transition: border-color .15s, background-color .15s;
+}
+.level-picker button i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.level-picker button.selected { border-color: var(--p-600); background: var(--p-50); color: var(--text); }
+.switch-row {
+  margin-top: 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; background: var(--n-50); cursor: pointer;
+}
+.switch-row b { display: block; font-size: 13px; }
+.switch-row small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+.switch-row input { display: none; }
+.switch { position: relative; flex: none; width: 40px; height: 22px; border-radius: 999px; background: var(--n-300); transition: background-color .2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform .2s; }
+.switch-row input:checked + .switch { background: var(--p-600); }
+.switch-row input:checked + .switch::after { transform: translateX(18px); }
+.peer-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.peer-chip { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--n-50); transition: border-color .15s; }
+.peer-chip button { border: 0; background: transparent; padding: 6px 11px; font-size: 12px; font-weight: 600; color: var(--n-600); }
+.peer-chip:hover { border-color: var(--n-400); }
+.peer-chip.on.hard, .peer-chip.on.soft { border-color: var(--red); background: var(--red-bg); }
+.peer-chip.on.hard button, .peer-chip.on.soft button { color: var(--red); }
+.peer-chip.on.together { border-color: var(--green); background: var(--green-bg); }
+.peer-chip.on.together button { color: var(--green); }
+.peer-chip .strength-toggle { border-left: 1px solid rgba(208,74,74,.3); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
 @media (max-width: 1100px) {
   .planner-body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
   .planner-right-col {
@@ -1211,9 +1355,10 @@ a { color: inherit; }
   .class-list-row { grid-template-columns: 28px 1fr; }
   .class-row-actions { grid-column: 2; flex-wrap: wrap; }
 
-  .create-card.compact { grid-template-columns: 1fr; align-items: stretch; }
 
   .setup-main { display: block; }
+  .create-card, .class-details { grid-template-columns: 1fr; }
+  .option-grid, .add-student-bar { grid-template-columns: 1fr; }
   .setup-main .panel { margin-bottom: 14px; }
 
   .student-list-header, .student-row {
