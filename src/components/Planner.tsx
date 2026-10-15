@@ -5,6 +5,7 @@ import { VIS_COLORS, BEH_COLORS } from "../lib";
 import type { Page } from "../App";
 import { SiteHeader } from "./Tools";
 import { KidAvatar } from "./KidAvatar";
+import { RoomViewport } from "./RoomViewport";
 import { layoutSize } from "../lib";
 import { getRoomLayout, saveRoomLayout, listPlans, savePlan, deletePlan, type SavedPlan } from "../plans";
 
@@ -13,6 +14,7 @@ interface DeskPosition { x: number; y: number; }
 // Teacher desk Y positions: top strip or bottom strip (percent of canvas)
 const TEACHER_FRONT_Y = 4;
 const TEACHER_BACK_Y = 88;
+const ROOM_W = 1200;
 const GAP_X = 36;
 const GAP_Y = 44;
 const FOOTPRINTS: Record<number, { w: number; h: number }> = {
@@ -81,7 +83,7 @@ export function Planner({
 
   const size = layoutSize(layout);
   const foot = FOOTPRINTS[size] ?? FOOTPRINTS[2];
-  const canvasWidth = () => document.getElementById("classroom-canvas")?.clientWidth || 1100;
+  const canvasWidth = () => ROOM_W;
   const gridCols = (count: number) => Math.max(1, Math.min(count, Math.floor((canvasWidth() - 40 + GAP_X) / (foot.w + GAP_X))));
   const topPx = teacherDeskAtFront ? 96 : 36;
   const canvasHeight = (count: number) => Math.max(680, topPx + Math.ceil(count / gridCols(count)) * (foot.h + GAP_Y) + (teacherDeskAtFront ? 40 : 110));
@@ -102,7 +104,7 @@ export function Planner({
     const cols = gridCols(count);
     if (size < 3 || cols < 3) return 0;
     const c = gi % cols;
-    return c === 0 ? 14 : c === cols - 1 ? -14 : 0;
+    return c === 0 ? 10 : c === cols - 1 ? -10 : 0;
   };
   const withRotations = (a: Arrangement): Arrangement => ({
     ...a, rotations: a.groups.map((_, gi) => rotationsRef.current[gi] ?? defaultRotation(gi, a.groups.length)),
@@ -287,8 +289,10 @@ export function Planner({
 
       <div className="planner-body">
         <div className="planner-canvas-col">
+          <RoomViewport width={ROOM_W} height={canvasHeight(currentGroups.length)}
+            actions={<button className="text-button filled" data-testid="room-regenerate-btn" onClick={doGenerate}>Regenerate</button>}>
           <div className="board-strip">WHITEBOARD</div>
-          <div className="classroom-canvas" id="classroom-canvas" style={{ height: canvasHeight(currentGroups.length), minHeight: 0, flex: "none" }}>
+          <div className="classroom-canvas" id="classroom-canvas" style={{ width: ROOM_W, height: canvasHeight(currentGroups.length), minHeight: 0, flex: "none" }}>
             <TeacherDesk
               x={teacherDeskX}
               y={teacherDeskY}
@@ -315,6 +319,7 @@ export function Planner({
               ))
             )}
           </div>
+          </RoomViewport>
         </div>
 
         <div className="planner-right-col">
@@ -580,7 +585,7 @@ function DraggableTableGroup({
         title={isLocked ? "Locked — click to unlock" : "Click to lock · Drag to move"}
         style={seatDragOver === si ? { outline: "2px dashed #3a8c5c", outlineOffset: "2px" } : undefined}
       >
-        <div className="seat-inner" style={rotation ? { transform: `rotate(${-rotation}deg)` } : undefined}>
+        <div className="seat-inner">
           <span className="seat-name" title={student.name}>{student.avatar && <KidAvatar avatar={student.avatar} fallback="" size={18} className="seat-avatar" />}{shortName(student.name)}</span>
           <div className="seat-badges">
             <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
