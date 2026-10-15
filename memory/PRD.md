@@ -19,3 +19,12 @@ Existing Vite + React + TS classroom Desk Planner (from Bolt, Supabase backend).
 - P1: Show notes / together links on planner seat hover
 - P1: Reorder students via drag
 - P2: Print / export seating chart
+
+## Iteration 3-4 (Oct 2026)
+- Home: bigger hero, colourful elementary classroom preview, teacher testimonial, new logo (table + 4 kids)
+- Duplicate student names blocked; roster avatars S1, S2...
+- Rectangular group tables, seats above/below; "First L." seat names, bigger
+- Varied seating options (diverse, spread scores, short summaries); hard conflicts named on cards
+- Room key panel (locked, conflicts, legend); drag students across tables; teacher desk drag x+y; front/back toggle fixed
+- Group Maker: no visibility, behaviour labels, score summary
+- Cozy lo-fi music with persistent global mute (synced across tabs)

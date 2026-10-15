@@ -1,0 +1,18 @@
+{
+  "summary": "Frontend verification of remaining Planner + Group Maker features (iter 4). All 6 requested checks pass. No console errors.",
+  "tested_scope": ["frontend"],
+  "passed": [
+    "Flow: Home -> home-open-planner-btn -> new-class-btn -> name 'T' -> continue -> paste-list bulk-add 8 unique full names -> student-settings-btn-0 (behaviour-high + first apart-chip) -> student-settings-done -> setup-review-map-btn",
+    "Drag seat-0-0 onto seat-1-0 swaps students across tables (Alice <-> Hank verified)",
+    "Click a seat sets key-locked to that student's name (data-testid=key-locked)",
+    "5 seating option cards present with summaries (count-pill=5, .candidate-card=5, .candidate-detail=5; Options A-E with 'Top pick' chip on A)",
+    "planner-desk-toggle-btn swaps teacher-desk between top 4% and top 88%; dragging teacher-desk changes BOTH left and top (35%,4% -> 53.42%,1%)",
+    "Group Maker via brand-home-btn -> home-open-groupmaker-btn: class T preselected, 'Generate groups' produces options; gm-score-summary visible with options A-E (100/100 top); no 'V' badges found in Group Maker UI"
+  ],
+  "failed": [],
+  "action_items": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": "Group Maker shows class picker only when multiple classes exist; with single class it's auto-selected (CLASS: T). Teacher-desk drag requires PointerEvents (not mouse) — initial try with page.mouse did not fire; dispatching real PointerEvent via evaluate works correctly, which matches real browser behavior for touch/pen/mouse pointer handlers."
+}
