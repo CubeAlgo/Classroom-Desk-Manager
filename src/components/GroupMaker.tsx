@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { fetchClasses, fetchStudents, fetchConstraints, type ClassRow, type StudentRow, type ConstraintRow } from "../db";
-import { generateArrangements, type Arrangement, type Student, type Constraint } from "../engine";
-import { tier } from "./Planner";
-import { BEH_COLORS } from "../lib";
+import { fromRow, generateArrangements, rescoreGroups, type Arrangement, type Student, type Constraint } from "../engine";
+import { tier, shortName } from "./Planner";
+import { BEH_COLORS, layoutLabel } from "../lib";
 import { SiteHeader } from "./Tools";
 import type { Page } from "../App";
 
@@ -35,7 +35,7 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
   }, [selectedClassId, loadClass]);
 
   const toEngineStudents = (rows: StudentRow[]): Student[] =>
-    rows.map((s) => ({ id: s.id, name: s.name, visibility: s.visibility, behavior: s.behavior, nearTeacher: s.near_teacher }));
+    rows.map(fromRow);
 
   const toEngineConstraints = (rows: ConstraintRow[]): Constraint[] =>
     rows.map((c) => ({ aId: c.student_a_id, bId: c.student_b_id, strength: c.strength }));
@@ -61,6 +61,21 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
   };
 
   const selected = arrangements.find((a) => a.id === selectedId) || null;
+  const [drag, setDrag] = useState<{ g: number; i: number } | null>(null);
+
+  const moveMember = (toG: number, toI: number | null) => {
+    if (!selected || !drag || (drag.g === toG && toI === null)) return;
+    const groups = selected.groups.map((g) => [...g]);
+    if (toI !== null && groups[toG][toI]) {
+      [groups[drag.g][drag.i], groups[toG][toI]] = [groups[toG][toI], groups[drag.g][drag.i]];
+    } else {
+      const [m] = groups[drag.g].splice(drag.i, 1);
+      groups[toG].push(m);
+    }
+    const metrics = rescoreGroups(groups.filter((g) => g.length), toEngineConstraints(constraints), new Set(), true, true);
+    setArrangements((prev) => prev.map((a) => a.id === selected.id ? { ...a, groups, ...metrics } : a));
+    setDrag(null);
+  };
   const selectedClass = classes.find((c) => c.id === selectedClassId) || null;
 
   return (
@@ -80,7 +95,7 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
               <div className="gm-class-grid">
                 {classes.map((cls) => (
                   <button key={cls.id} className="gm-class-card" onClick={() => setSelectedClassId(cls.id)}>
-                    <span className="row-kicker">{cls.layout === "pairs" ? "PAIRS" : "GROUPS"}</span>
+                    <span className="row-kicker">{layoutLabel(cls.layout).toUpperCase()}</span>
                     <h3>{cls.name}</h3>
                     <span className="gm-class-go">Select →</span>
                   </button>
@@ -133,15 +148,19 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
                       <h3>{selected.name} — {selected.groups.length} groups</h3>
                       <span className="gm-stat">Score {selected.score}/100</span>
                     </div>
-                    <p className="insight-summary" data-testid="gm-score-summary">{selected.summary}</p>
+                    <p className="insight-summary" data-testid="gm-score-summary">{selected.summary}<span className="gm-drag-hint">Drag students between groups</span></p>
                     <div className="gm-groups-grid">
                       {selected.groups.map((group, gi) => (
-                        <div key={gi} className="gm-group-card">
+                        <div key={gi} className="gm-group-card" data-testid={`gm-group-${gi}`}
+                          onDragOver={(e) => e.preventDefault()} onDrop={() => moveMember(gi, null)}>
                           <span className="gm-group-num">Group {gi + 1}</span>
                           <div className="gm-group-members">
-                            {group.map((s) => (
-                              <div key={s.id} className="gm-member">
-                                <span className="gm-member-name">{s.name || "?"}</span>
+                            {group.map((s, si) => (
+                              <div key={s.id} className="gm-member" draggable data-testid={`gm-member-${gi}-${si}`}
+                                onDragStart={() => setDrag({ g: gi, i: si })}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => { e.stopPropagation(); moveMember(gi, si); }}>
+                                <span className="gm-member-name">{shortName(s.name)}</span>
                                 <div className="seat-badges">
                                   <span className="badge" style={{ background: BEH_COLORS[s.behavior] + "20", color: BEH_COLORS[s.behavior] }} title={`Behaviour: ${s.behavior}`}>{s.behavior === "low" ? "Calm" : s.behavior === "high" ? "Energetic" : "Steady"}</span>
                                 </div>

@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { local } from "./localStore";
 
-export type LayoutType = "pairs" | "groups";
+export type LayoutType = "singles" | "pairs" | "threes" | "fours" | "groups";
 export type Level = "low" | "medium" | "high";
 export type ConstraintStrength = "hard" | "soft" | "together";
 export type TeacherDeskPosition = "front" | "back";
@@ -22,11 +22,14 @@ export interface StudentRow {
   behavior: Level;
   near_teacher: boolean;
   notes?: string;
+  hearing?: Level;
+  esl?: boolean;
+  avatar?: string;
   sort_order: number;
   created_at: string;
 }
 
-export type StudentPatch = Partial<Pick<StudentRow, "name" | "visibility" | "behavior" | "near_teacher" | "notes">>;
+export type StudentPatch = Partial<Pick<StudentRow, "name" | "visibility" | "behavior" | "near_teacher" | "notes" | "hearing" | "esl" | "avatar">>;
 
 export interface ConstraintRow {
   id: string;
@@ -95,9 +98,9 @@ export async function fetchStudents(classId: string): Promise<StudentRow[]> {
   return data as StudentRow[];
 }
 
-export async function createStudent(classId: string, name: string, sortOrder: number): Promise<StudentRow> {
-  const values = { class_id: classId, name, sort_order: sortOrder, visibility: "medium", behavior: "medium", near_teacher: false };
-  if (!supabase) return local.insert("students", { ...values, notes: "" }) as unknown as StudentRow;
+export async function createStudent(classId: string, name: string, sortOrder: number, extra: StudentPatch = {}): Promise<StudentRow> {
+  const values = { class_id: classId, name, sort_order: sortOrder, visibility: "medium", behavior: "medium", near_teacher: false, ...extra };
+  if (!supabase) return local.insert("students", { hearing: "high", esl: false, avatar: "", notes: "", ...values }) as unknown as StudentRow;
   const { data, error } = await supabase.from("students").insert(values).select().single();
   if (error) throw error;
   return data as StudentRow;

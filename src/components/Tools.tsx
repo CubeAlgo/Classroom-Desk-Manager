@@ -31,6 +31,35 @@ function HeroPreview() {
   );
 }
 
+const QUOTES = [
+  { text: "Remarkably user-friendly — it saves me valuable planning time every week.", name: "Ms. Schnell", role: "ESL Teacher", color: "sky" },
+  { text: "Keeps my seating organized while truly taking each student's needs into account.", name: "Ms. Creighton", role: "Grade 7/8 Teacher", color: "coral" },
+  { text: "So many group and seating options — it's easy to experiment until the room feels just right.", name: "Ms. Hardimen", role: "Grade 8 Music Teacher", color: "grape" },
+];
+
+const initials = (name: string) => name.replace(/^(Ms|Mr|Mrs|Dr)\.?\s*/i, "").slice(0, 1).toUpperCase();
+
+function Testimonials() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % QUOTES.length), 6500);
+    return () => clearInterval(t);
+  }, [i]);
+  const q = QUOTES[i];
+  return (
+    <section className="home-quote" data-testid="home-testimonial">
+      <span className="quote-label">What teachers say</span>
+      <blockquote key={q.name} data-testid="testimonial-text">“{q.text}”</blockquote>
+      <cite key={`${q.name}-cite`}><i className={`av-${q.color}`}>{initials(q.name)}</i><span><b>{q.name}</b><small>{q.role}</small></span></cite>
+      <div className="quote-dots">
+        {QUOTES.map((x, j) => (
+          <button key={x.name} className={j === i ? "on" : ""} data-testid={`testimonial-dot-${j}`} onClick={() => setI(j)} aria-label={`Show quote from ${x.name}`} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: string) => void }) {
   return (
     <div className="site-shell">
@@ -49,11 +78,7 @@ export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: strin
           <HeroPreview />
         </section>
 
-        <section className="home-quote" data-testid="home-testimonial">
-          <span className="quote-mark">“</span>
-          <blockquote>Keeps my seating organized — and saves me from inventing a new arrangement every time.</blockquote>
-          <cite><i>MR</i><span><b>Ms. Rivera</b><small>2nd grade teacher</small></span></cite>
-        </section>
+        <Testimonials />
         <p className="local-note">Your classes and room plans stay in this browser, on this device.</p>
       </main>
     </div>

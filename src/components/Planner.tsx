@@ -1,9 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { fetchStudents, fetchConstraints, type ConstraintRow, type ClassRow, type StudentRow, updateClass } from "../db";
-import { generateArrangements, rescoreGroups, type Student, type Constraint, type Arrangement, type LayoutType } from "../engine";
+import { fromRow, generateArrangements, rescoreGroups, type Student, type Constraint, type Arrangement, type LayoutType } from "../engine";
 import { VIS_COLORS, BEH_COLORS } from "../lib";
 import type { Page } from "../App";
 import { SiteHeader } from "./Tools";
+import { KidAvatar } from "./KidAvatar";
+import { layoutSize } from "../lib";
+import { getRoomLayout, saveRoomLayout, listPlans, savePlan, deletePlan, type SavedPlan } from "../plans";
 
 interface DeskPosition { x: number; y: number; }
 
@@ -26,10 +29,14 @@ export function Planner({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentGroups, setCurrentGroups] = useState<Student[][]>([]);
   const [currentRotations, setCurrentRotations] = useState<number[]>([]);
-  const [deskPositions, setDeskPositions] = useState<DeskPosition[]>([]);
+  const [savedLayout] = useState(() => getRoomLayout(classId));
+  const [deskPositions, setDeskPositions] = useState<DeskPosition[]>(savedLayout?.desks ?? []);
+  const [plans, setPlans] = useState<SavedPlan[]>(() => listPlans(classId));
+  const [planName, setPlanName] = useState("");
+  const [notice, setNotice] = useState("");
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
   // Teacher desk X position (0-100 percent). Y is determined by front/back setting.
-  const [teacherDeskX, setTeacherDeskX] = useState(35);
+  const [teacherDeskX, setTeacherDeskX] = useState(savedLayout?.teacher.x ?? 35);
 
   const studentsRef = useRef(students);
   const constraintsRef = useRef(constraints);
@@ -44,11 +51,10 @@ export function Planner({
 
   const layout: LayoutType = classData?.layout ?? "pairs";
   const teacherDeskAtFront: boolean = classData?.teacher_desk_position !== "back";
-  const [teacherDeskY, setTeacherDeskY] = useState(teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y);
-  useEffect(() => { setTeacherDeskY(teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y); }, [teacherDeskAtFront]);
+  const [teacherDeskY, setTeacherDeskY] = useState(savedLayout?.teacher.y ?? (teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y));
 
   const toEngineStudents = (rows: typeof students): Student[] =>
-    rows.map((s) => ({ id: s.id, name: s.name, visibility: s.visibility, behavior: s.behavior, nearTeacher: s.near_teacher }));
+    rows.map(fromRow);
 
   const toEngineConstraints = (rows: ConstraintRow[]): Constraint[] =>
     rows.map((c) => ({ aId: c.student_a_id, bId: c.student_b_id, strength: c.strength }));
@@ -68,12 +74,13 @@ export function Planner({
   useEffect(() => { load(); }, [load]);
 
   const buildInitialPositions = (count: number): DeskPosition[] => {
-    const cols = layout === "groups" ? 3 : 4;
+    const size = layoutSize(layout);
+    const cols = ({ 1: 6, 2: 4, 3: 4, 4: 3, 5: 3 } as Record<number, number>)[size] ?? 4;
     const rows = Math.ceil(count / cols);
     const yStart = teacherDeskAtFront ? 14 : 4;
-    const yStep = rows > 1 ? Math.min(layout === "groups" ? 40 : 24, (70 - 0) / (rows - 1)) : 0;
+    const yStep = rows > 1 ? Math.min(size <= 2 ? 22 : 36, 70 / (rows - 1)) : 0;
     return Array.from({ length: count }, (_, i) => ({
-      x: layout === "groups" ? 3 + (i % cols) * 33 : 6 + (i % cols) * 23,
+      x: 3 + (i % cols) * (94 / cols),
       y: yStart + Math.floor(i / cols) * yStep,
     }));
   };
@@ -177,13 +184,50 @@ export function Planner({
     updateClass(classId, { teacher_desk_position: newPos }).catch(console.error);
   };
 
-  const firstDeskRender = useRef(true);
+  const prevFront = useRef(teacherDeskAtFront);
   useEffect(() => {
-    if (firstDeskRender.current) { firstDeskRender.current = false; return; }
+    if (prevFront.current === teacherDeskAtFront) return;
+    prevFront.current = teacherDeskAtFront;
+    setTeacherDeskY(teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y);
     setDeskPositions([]);
     doGenerate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teacherDeskAtFront]);
+
+  const flash = (msg: string) => { setNotice(msg); setTimeout(() => setNotice(""), 2600); };
+  const currentLayout = () => ({ desks: currentGroups.map((_, gi) => deskPositions[gi] || buildInitialPositions(currentGroups.length)[gi]), teacher: { x: teacherDeskX, y: teacherDeskY } });
+
+  const handleSaveLayout = () => { saveRoomLayout(classId, currentLayout()); flash("Room layout saved — new plans will use it"); };
+
+  const handleSavePlan = () => {
+    const name = planName.trim() || `Plan ${plans.length + 1}`;
+    const plan = savePlan({ classId, name, groups: currentGroups.map((g) => g.map((st) => st.id)), rotations: currentRotations, layout: currentLayout() });
+    saveRoomLayout(classId, plan.layout);
+    setPlans((prev) => [plan, ...prev]);
+    setPlanName("");
+    flash(`Saved "${name}"`);
+  };
+
+  const handleLoadPlan = (p: SavedPlan) => {
+    const byId = new Map(students.map((st) => [st.id, fromRow(st)]));
+    const groups = p.groups.map((g) => g.map((id) => byId.get(id)).filter(Boolean) as Student[]);
+    const placed = new Set(groups.flat().map((st) => st.id));
+    students.filter((st) => !placed.has(st.id)).forEach((st) => {
+      const smallest = groups.reduce((a, g) => (g.length < a.length ? g : a), groups[0]);
+      smallest.push(fromRow(st));
+    });
+    const m = rescoreGroups(groups, toEngineConstraints(constraints), lockedIds, teacherDeskAtFront);
+    const arr: Arrangement = { id: p.id, name: p.name, groups, rotations: p.rotations, ...m };
+    setArrangements((prev) => [arr, ...prev.filter((a) => a.id !== p.id)]);
+    setSelectedId(p.id);
+    setCurrentGroups(groups);
+    setCurrentRotations(p.rotations);
+    setDeskPositions(p.layout.desks);
+    setTeacherDeskX(p.layout.teacher.x);
+    setTeacherDeskY(p.layout.teacher.y);
+  };
+
+  const handleDeletePlan = (id: string) => { deletePlan(id); setPlans((prev) => prev.filter((p) => p.id !== id)); };
 
   const ec = toEngineConstraints(constraints);
   const insight = selected ? rescoreGroups(currentGroups, ec, lockedIds, teacherDeskAtFront) : null;
@@ -209,6 +253,8 @@ export function Planner({
           <button className="ghost-pill" data-testid="planner-desk-toggle-btn" onClick={handleToggleTeacherDeskSide}>
             Desk: {teacherDeskAtFront ? "Front" : "Back"} (swap)
           </button>
+          {notice && <span className="planner-notice" data-testid="planner-notice">{notice}</span>}
+          <button className="ghost-pill" data-testid="planner-save-layout-btn" onClick={handleSaveLayout} title="Keep this desk layout for every new plan">Save room layout</button>
           <button className="text-button filled" data-testid="planner-regenerate-btn" onClick={doGenerate}>Regenerate</button>
         </div>
       </div>
@@ -259,7 +305,7 @@ export function Planner({
                   <div key={a.id} className={`candidate-card ${a.id === selectedId ? "selected" : ""}`} onClick={() => handleSelectArrangement(a)}>
                     <div className={`candidate-score tier-${tier(a.score)}`}>{a.score}</div>
                     <div>
-                      <div className="candidate-title">{a.name}{a === arrangements[0] && <span className="best-chip">Top pick</span>}</div>
+                      <div className="candidate-title">{a.name}{a.name === "Option A" && <span className="best-chip">Top pick</span>}{plans.some((p) => p.id === a.id) && <span className="best-chip saved">Saved</span>}</div>
                       <div className="candidate-detail">{a.summary}</div>
                       {a.hardViolations > 0 && <div className="candidate-conflict" data-testid={`candidate-conflict-${a.name}`}>Must apart: {conflictPairs(a.id === selectedId ? currentGroups : a.groups, ec).join(" · ")}</div>}
                     </div>
@@ -278,7 +324,7 @@ export function Planner({
                 <div className={`insight-score-display tier-text-${tier(insight.score)}`}>{insight.score}<small>/100</small></div>
                 <p className="insight-summary" data-testid="planner-insight-summary">{selected?.summary}</p>
                 <div className="insight-meters">
-                  <Meter label="Seeing the board" value={insight.visibility} />
+                  <Meter label="Front-seat needs" value={insight.visibility} />
                   <Meter label="Calm tables" value={insight.behavior} />
                 </div>
                 <p className="insight-note">Click a seat to lock it · drag the teacher's desk anywhere</p>
@@ -286,6 +332,22 @@ export function Planner({
             ) : (
               <p className="muted-text">Select a candidate above to see what was prioritized.</p>
             )}
+          </section>
+          <section className="right-panel plans-panel" data-testid="saved-plans-panel">
+            <div className="right-panel-head"><h3>Saved plans</h3><span className="count-pill">{plans.length}</span></div>
+            <div className="plan-save-row">
+              <input className="text-input" data-testid="plan-name-input" value={planName} onChange={(e) => setPlanName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSavePlan()} placeholder="Name this plan, e.g. Week 3" />
+              <button className="text-button filled" data-testid="save-plan-btn" onClick={handleSavePlan} disabled={!currentGroups.length}>Save</button>
+            </div>
+            {plans.map((p, i) => (
+              <div key={p.id} className="plan-row" data-testid={`saved-plan-${i}`}>
+                <button className="plan-open" data-testid={`load-plan-btn-${i}`} onClick={() => handleLoadPlan(p)}>
+                  <b>{p.name}</b><small>{new Date(p.createdAt).toLocaleDateString()}</small>
+                </button>
+                <button className="delete-inline" data-testid={`delete-plan-btn-${i}`} onClick={() => handleDeletePlan(p.id)} aria-label="Delete plan">×</button>
+              </div>
+            ))}
           </section>
           <KeyPanel locked={currentGroups.flat().filter((st) => lockedIds.has(st.id))} conflicts={conflictPairs(currentGroups, ec)} />
         </div>
@@ -327,7 +389,7 @@ function KeyPanel({ locked, conflicts }: { locked: Student[]; conflicts: string[
       <div className="key-row"><b>Must-apart conflicts</b><span data-testid="key-conflicts" className={conflicts.length ? "bad" : "good"}>{conflicts.length ? conflicts.join(" · ") : "None"}</span></div>
       <ul className="key-legend">
         <li><i className="k-lock" /> Locked</li><li><i className="k-hard" /> Must apart</li><li><i className="k-soft" /> Prefer apart</li>
-        <li><em className="k-badge">V</em> Visibility</li><li><em className="k-badge">B</em> Behaviour</li><li><em className="k-badge star">★</em> Near teacher</li>
+        <li><em className="k-badge">V</em> Visibility</li><li><em className="k-badge">B</em> Behaviour</li><li><em className="k-badge">H</em> Hearing</li><li><em className="k-badge esl-badge">ESL</em> Language support</li><li><em className="k-badge star">★</em> Near teacher</li>
       </ul>
       <p className="insight-note">Drag a student onto any seat or table to move them</p>
     </section>
@@ -402,8 +464,9 @@ function DraggableTableGroup({
   const deskDragRef = useRef<{ startX: number; startY: number; startPos: DeskPosition } | null>(null);
   const [isDraggingDesk, setIsDraggingDesk] = useState(false);
 
-  const label = layout === "pairs" ? `Desk ${groupIndex + 1}` : `Group ${groupIndex + 1}`;
-  const isPair = layout === "pairs";
+  const size = layoutSize(layout);
+  const isPair = size <= 2;
+  const label = isPair ? `Desk ${groupIndex + 1}` : `Group ${groupIndex + 1}`;
 
   const groupIds = new Set(group.map((s) => s.id));
   const conflictMap = new Map<string, "hard" | "soft">();
@@ -492,10 +555,12 @@ function DraggableTableGroup({
         style={seatDragOver === si ? { outline: "2px dashed #3a8c5c", outlineOffset: "2px" } : undefined}
       >
         <div className="seat-inner">
-          <span className="seat-name" title={student.name}>{shortName(student.name)}</span>
+          <span className="seat-name" title={student.name}>{student.avatar && <KidAvatar avatar={student.avatar} fallback="" size={18} className="seat-avatar" />}{shortName(student.name)}</span>
           <div className="seat-badges">
             <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
             <span className="badge" style={{ background: BEH_COLORS[student.behavior] + "20", color: BEH_COLORS[student.behavior] }} title={`Behavior: ${student.behavior}`}>B</span>
+            {student.hearing !== "high" && <span className="badge" style={{ background: VIS_COLORS[student.hearing] + "20", color: VIS_COLORS[student.hearing] }} title={`Hearing: ${student.hearing}`}>H</span>}
+            {student.esl && <span className="badge esl-badge" title="ESL / language support">ESL</span>}
             {student.nearTeacher && <span className="badge near-teacher-badge" title="Needs to sit near teacher">★</span>}
             {isLocked && <span className="badge lock-badge">🔒</span>}
             {conflict === "hard" && <span className="badge conflict-badge hard" title="Hard conflict — must separate">!</span>}
@@ -529,7 +594,7 @@ function DraggableTableGroup({
         onDrop={() => { if (dragSource && dragSource.group !== groupIndex) { onMoveStudent(dragSource.group, dragSource.seat, groupIndex, group.length); dragSource = null; } }}>
         {isPair ? (
           <>
-            <div className="table-surface pair-surface"><span className="table-surface-label">{label}</span></div>
+            <div className={`table-surface pair-surface ${size === 1 ? "single-surface" : ""}`}><span className="table-surface-label">{label}</span></div>
             <div className="seats-container pair-seats">{group.map((s, si) => renderSeat(s, si))}</div>
           </>
         ) : (

@@ -7,6 +7,15 @@ import {
 import type { Page } from "../App";
 import { SiteHeader } from "./Tools";
 import { StudentSettings, GearIcon } from "./StudentSettings";
+import { KidAvatar } from "./KidAvatar";
+import { LAYOUTS } from "../lib";
+
+const CLIP = "desk-planner-clipboard";
+type ClipStudent = StudentPatch & { key: string; name: string };
+type Clip = { fromClassId: string; students: ClipStudent[]; constraints: { a: string; b: string; strength: ConstraintStrength }[] };
+const readClip = (): Clip | null => { try { return JSON.parse(localStorage.getItem(CLIP) || "null"); } catch { return null; } };
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+const KEY = isMac ? "⌘" : "Ctrl+";
 
 function studentTags(s: StudentRow, constraints: ConstraintRow[]) {
   const mine = constraints.filter((c) => c.student_a_id === s.id || c.student_b_id === s.id);
@@ -14,6 +23,8 @@ function studentTags(s: StudentRow, constraints: ConstraintRow[]) {
   if (s.visibility === "low") tags.push({ label: "Needs front", tone: "red" });
   if (s.behavior === "high") tags.push({ label: "Needs watch", tone: "amber" });
   if (s.near_teacher) tags.push({ label: "Near teacher", tone: "green" });
+  if (s.hearing === "low") tags.push({ label: "Hearing", tone: "red" });
+  if (s.esl) tags.push({ label: "ESL", tone: "sky" });
   const apart = mine.filter((c) => c.strength !== "together").length;
   const together = mine.filter((c) => c.strength === "together").length;
   if (apart) tags.push({ label: `Apart · ${apart}`, tone: "red" });
@@ -39,6 +50,9 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
   const [bulkText, setBulkText] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [addError, setAddError] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [clip, setClip] = useState<Clip | null>(readClip);
+  const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -138,6 +152,73 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
     try { await updateConstraint(c.id, { strength }); } catch (e) { console.error(e); }
   };
 
+  const toggleSelect = (id: string) => setSelectedIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const copySelected = useCallback(() => {
+    const picked = students.filter((s) => selectedIds.has(s.id));
+    if (!picked.length) return;
+    const ids = new Set(picked.map((s) => s.id));
+    const data: Clip = {
+      fromClassId: classId,
+      students: picked.map((s) => ({ key: s.id, name: s.name, visibility: s.visibility, behavior: s.behavior, near_teacher: s.near_teacher, notes: s.notes, hearing: s.hearing, esl: s.esl, avatar: s.avatar })),
+      constraints: constraints.filter((c) => ids.has(c.student_a_id) && ids.has(c.student_b_id)).map((c) => ({ a: c.student_a_id, b: c.student_b_id, strength: c.strength })),
+    };
+    localStorage.setItem(CLIP, JSON.stringify(data));
+    setClip(data);
+    setNotice(`Copied ${picked.length} student${picked.length === 1 ? "" : "s"}. Open another class and press ${KEY}V to paste.`);
+  }, [students, selectedIds, constraints, classId]);
+
+  const pasteClip = useCallback(async () => {
+    const data = readClip();
+    if (!data?.students.length) return;
+    const taken = new Set(students.map((s) => s.name.trim().toLowerCase()));
+    const idMap = new Map<string, string>();
+    const created: StudentRow[] = [];
+    let skipped = 0;
+    try {
+      for (const { key, name: n, ...extra } of data.students) {
+        if (taken.has(n.trim().toLowerCase())) { skipped++; continue; }
+        taken.add(n.trim().toLowerCase());
+        const row = await createStudent(classId, n, students.length + created.length, extra);
+        idMap.set(key, row.id);
+        created.push(row);
+      }
+      const links: ConstraintRow[] = [];
+      for (const c of data.constraints) {
+        const a = idMap.get(c.a), b = idMap.get(c.b);
+        if (a && b) links.push(await createConstraint(classId, a, b, c.strength));
+      }
+      setStudents((prev) => [...prev, ...created]);
+      setConstraints((prev) => [...prev, ...links]);
+    } catch (e) { console.error(e); }
+    setNotice(`Pasted ${created.length} student${created.length === 1 ? "" : "s"}${skipped ? ` · ${skipped} already here` : ""}.`);
+  }, [students, classId]);
+
+  const removeSelected = async () => {
+    const ids = [...selectedIds];
+    setSelectedIds(new Set());
+    for (const id of ids) await handleDeleteStudent(id);
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (el.closest("input, textarea, select") || !(e.metaKey || e.ctrlKey)) return;
+      const k = e.key.toLowerCase();
+      if (k === "c" && selectedIds.size) { e.preventDefault(); copySelected(); }
+      if (k === "v" && readClip()) { e.preventDefault(); pasteClip(); }
+      if (k === "a" && students.length) { e.preventDefault(); setSelectedIds(new Set(students.map((s) => s.id))); }
+    };
+    const onFocus = () => setClip(readClip());
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("focus", onFocus);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("focus", onFocus); };
+  }, [selectedIds, copySelected, pasteClip, students]);
+
   const active = students.find((s) => s.id === settingsId) || null;
 
   return (
@@ -156,9 +237,10 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
           </div>
           <div className="class-details-field">
             <label className="field-label">Seating layout</label>
-            <div className="segmented">
-              <button data-testid="layout-pairs-btn" className={layout === "pairs" ? "selected" : ""} onClick={() => setLayout("pairs")}>Pairs</button>
-              <button data-testid="layout-groups-btn" className={layout === "groups" ? "selected" : ""} onClick={() => setLayout("groups")}>Groups (≤5)</button>
+            <div className="segmented five">
+              {LAYOUTS.map((l) => (
+                <button key={l.id} data-testid={`layout-${l.id}-btn`} className={layout === l.id ? "selected" : ""} onClick={() => setLayout(l.id)} title={l.desc}>{l.short}</button>
+              ))}
             </div>
           </div>
           <div className="class-details-field">
@@ -200,6 +282,23 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
             </div>
           )}
 
+          {(selectedIds.size > 0 || (clip && clip.students.length > 0) || notice) && (
+            <div className="select-bar" data-testid="select-bar">
+              {selectedIds.size > 0 ? (
+                <>
+                  <b>{selectedIds.size} selected</b>
+                  <button className="text-button filled" data-testid="copy-selected-btn" onClick={copySelected}>Copy <kbd>{KEY}C</kbd></button>
+                  <button className="text-button outlined" data-testid="remove-selected-btn" onClick={removeSelected}>Remove from class</button>
+                  <button className="ghost-pill" data-testid="clear-selection-btn" onClick={() => setSelectedIds(new Set())}>Clear</button>
+                </>
+              ) : <span className="select-hint">Tip: tick students to copy them into another class</span>}
+              {clip && clip.students.length > 0 && (
+                <button className="text-button outlined paste-btn" data-testid="paste-students-btn" onClick={pasteClip}>Paste {clip.students.length} copied <kbd>{KEY}V</kbd></button>
+              )}
+              {notice && <span className="select-notice" data-testid="select-notice">{notice}</span>}
+            </div>
+          )}
+
           {loading ? (
             <div className="loading-text">Loading students…</div>
           ) : students.length === 0 ? (
@@ -209,8 +308,9 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
               {students.map((s, i) => {
                 const dupe = !s.name.trim() || isDuplicate(s.id, s.name);
                 return (
-                <div key={s.id} className={`roster-card ${dupe ? "invalid" : ""}`} data-testid={`student-card-${i}`}>
-                  <span className="roster-avatar">S{i + 1}</span>
+                <div key={s.id} className={`roster-card ${dupe ? "invalid" : ""} ${selectedIds.has(s.id) ? "picked" : ""}`} data-testid={`student-card-${i}`}>
+                  <button className={`pick-box ${selectedIds.has(s.id) ? "on" : ""}`} data-testid={`student-select-${i}`} onClick={() => toggleSelect(s.id)} aria-label="Select student">{selectedIds.has(s.id) ? "✓" : ""}</button>
+                  <KidAvatar avatar={s.avatar} fallback={`S${i + 1}`} className="roster-avatar" />
                   <div className="roster-copy">
                     <input className="roster-name" data-testid={`student-name-input-${i}`} value={s.name}
                       onChange={(e) => handleUpdateStudent(s.id, { name: e.target.value })} />

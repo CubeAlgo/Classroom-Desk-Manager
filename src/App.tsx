@@ -7,6 +7,7 @@ import { Tools } from "./components/Tools";
 import { GroupMaker } from "./components/GroupMaker";
 import { musicController } from "./music";
 import "./App.css";
+import "./v5.css";
 
 export type Page = "tools" | "hub" | "setup" | "planner" | "groupmaker";
 

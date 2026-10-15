@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { fetchClasses, createClass, deleteClass, type ClassRow, type LayoutType, type TeacherDeskPosition } from "../db";
 import type { Page } from "../App";
 import { SiteHeader } from "./Tools";
+import { LAYOUTS, layoutLabel } from "../lib";
 
 function OptionCard({ selected, title, desc, onClick, testid }: { selected: boolean; title: string; desc: string; onClick: () => void; testid: string }) {
   return (
@@ -35,9 +36,10 @@ function CreateClassCard({ onCancel, onCreated }: { onCancel: () => void; onCrea
         </div>
         <div>
           <label className="field-label">Starting layout</label>
-          <div className="option-grid">
-            <OptionCard testid="new-class-layout-pairs" selected={layout === "pairs"} title="Pairs" desc="Two students per desk" onClick={() => setLayout("pairs")} />
-            <OptionCard testid="new-class-layout-groups" selected={layout === "groups"} title="Groups" desc="Up to five per table" onClick={() => setLayout("groups")} />
+          <div className="option-grid five">
+            {LAYOUTS.map((l) => (
+              <OptionCard key={l.id} testid={`new-class-layout-${l.id}`} selected={layout === l.id} title={l.title} desc={l.desc} onClick={() => setLayout(l.id)} />
+            ))}
           </div>
         </div>
         <div>
@@ -66,6 +68,6 @@ export function Hub({ onNavigate }: { onNavigate: (page: Page, classId?: string)
   return <div className="site-shell"><SiteHeader active="classes" onNavigate={onNavigate} /><main className="classes-main">
     <section className="classes-heading"><div><span className="page-title-kicker">Desk Planner <em>/</em> Your workspace</span><h1>Choose a class to arrange.</h1></div><button className="text-button filled" data-testid="new-class-btn" onClick={() => setCreating((value) => !value)}>{creating ? "Cancel" : "＋ New class"}</button></section>
     {creating && <CreateClassCard onCancel={() => setCreating(false)} onCreated={(cls) => { setCreating(false); onNavigate("setup", cls.id); }} />}
-    {loading ? <div className="hub-loading">Loading your classes…</div> : classes.length === 0 ? (!creating && <div className="hub-empty"><h2>No classes yet</h2><p>Create your first class and build a thoughtful seating plan.</p><button className="text-button filled" data-testid="create-first-class-btn" onClick={() => setCreating(true)}>Create your first class</button></div>) : <div className="class-list">{classes.map((cls, index) => <article className="class-list-row" key={cls.id} data-testid={`class-row-${index}`}><span className="row-number">{String(index + 1).padStart(2, "0")}</span><div className="class-row-copy"><span className="row-kicker">{cls.layout === "pairs" ? "PAIRS" : "GROUPS"} · CLASSROOM</span><h2>{cls.name}</h2><p>Ready for your class details</p></div><div className="class-row-actions"><button className="text-button outlined" data-testid={`class-edit-btn-${index}`} onClick={() => onNavigate("setup", cls.id)}>Edit setup</button><button className="text-button filled" data-testid={`class-arrange-btn-${index}`} onClick={() => onNavigate("planner", cls.id)}>Arrange room <span>→</span></button><button className="row-link" onClick={() => onNavigate("groupmaker", cls.id)}>Group Maker</button><button className="delete-inline" data-testid={`class-delete-btn-${index}`} onClick={() => handleDelete(cls.id)} aria-label={`Delete ${cls.name}`}>×</button></div></article>)}</div>}
+    {loading ? <div className="hub-loading">Loading your classes…</div> : classes.length === 0 ? (!creating && <div className="hub-empty"><h2>No classes yet</h2><p>Create your first class and build a thoughtful seating plan.</p><button className="text-button filled" data-testid="create-first-class-btn" onClick={() => setCreating(true)}>Create your first class</button></div>) : <div className="class-list">{classes.map((cls, index) => <article className="class-list-row" key={cls.id} data-testid={`class-row-${index}`}><span className="row-number">{String(index + 1).padStart(2, "0")}</span><div className="class-row-copy"><span className="row-kicker">{layoutLabel(cls.layout).toUpperCase()} · CLASSROOM</span><h2>{cls.name}</h2><p>Ready for your class details</p></div><div className="class-row-actions"><button className="text-button outlined" data-testid={`class-edit-btn-${index}`} onClick={() => onNavigate("setup", cls.id)}>Edit setup</button><button className="text-button filled" data-testid={`class-arrange-btn-${index}`} onClick={() => onNavigate("planner", cls.id)}>Arrange room <span>→</span></button><button className="row-link" onClick={() => onNavigate("groupmaker", cls.id)}>Group Maker</button><button className="delete-inline" data-testid={`class-delete-btn-${index}`} onClick={() => handleDelete(cls.id)} aria-label={`Delete ${cls.name}`}>×</button></div></article>)}</div>}
   </main></div>;
 }

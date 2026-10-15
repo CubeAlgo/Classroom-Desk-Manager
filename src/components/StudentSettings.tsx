@@ -1,5 +1,6 @@
 import type { StudentRow, ConstraintRow, ConstraintStrength, Level, StudentPatch } from "../db";
-import { VIS_LABELS, BEH_LABELS, VIS_COLORS, BEH_COLORS } from "../lib";
+import { VIS_LABELS, BEH_LABELS, VIS_COLORS, BEH_COLORS, HEAR_LABELS } from "../lib";
+import { AVATAR_COLORS, AVATAR_ANIMALS, parseAvatar, KidAvatar } from "./KidAvatar";
 
 export function GearIcon({ size = 16 }: { size?: number }) {
   return (
@@ -64,6 +65,30 @@ function PeerPicker({ title, hint, student, students, links, onToggle, onStrengt
   );
 }
 
+function AvatarPicker({ avatar, onChange }: { avatar?: string; onChange: (a: string) => void }) {
+  const { color, animal } = parseAvatar(avatar);
+  const set = (c: string, a: string) => onChange(c || a ? `${c}|${a}` : "");
+  return (
+    <div className="drawer-section">
+      <span className="field-label">Map icon <em className="optional">optional</em></span>
+      <div className="avatar-row">
+        <button className={`swatch none ${!color ? "selected" : ""}`} data-testid="avatar-color-none" onClick={() => set("", animal)} aria-label="No colour" />
+        {AVATAR_COLORS.map((c) => (
+          <button key={c} className={`swatch av-${c} ${color === c ? "selected" : ""}`} data-testid={`avatar-color-${c}`} onClick={() => set(c, animal)} aria-label={c} />
+        ))}
+      </div>
+      <div className="avatar-row">
+        <button className={`animal-btn ${!animal ? "selected" : ""}`} data-testid="avatar-animal-none" onClick={() => set(color, "")}>None</button>
+        {Object.keys(AVATAR_ANIMALS).map((a) => (
+          <button key={a} className={`animal-btn ${animal === a ? "selected" : ""}`} data-testid={`avatar-animal-${a}`} onClick={() => set(color, a)} aria-label={a}>
+            <KidAvatar avatar={`${color}|${a}`} fallback="" size={26} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function StudentSettings({ student, students, constraints, onClose, onUpdate, onToggleLink, onStrength }: {
   student: StudentRow; students: StudentRow[]; constraints: ConstraintRow[];
   onClose: () => void;
@@ -90,6 +115,7 @@ export function StudentSettings({ student, students, constraints, onClose, onUpd
         </header>
         <div className="drawer-body">
           <LevelPicker label="Visibility" value={student.visibility} labels={VIS_LABELS} colors={VIS_COLORS} onChange={(v) => onUpdate({ visibility: v })} testid="visibility" />
+          <LevelPicker label="Hearing" value={student.hearing ?? "high"} labels={HEAR_LABELS} colors={VIS_COLORS} onChange={(v) => onUpdate({ hearing: v })} testid="hearing" />
           <LevelPicker label="Behaviour" value={student.behavior} labels={BEH_LABELS} colors={BEH_COLORS} onChange={(v) => onUpdate({ behavior: v })} testid="behaviour" />
           <div className="drawer-section">
             <span className="field-label">Behaviour notes</span>
@@ -102,6 +128,12 @@ export function StudentSettings({ student, students, constraints, onClose, onUpd
             <input type="checkbox" checked={student.near_teacher} onChange={(e) => onUpdate({ near_teacher: e.target.checked })} />
             <i className="switch" />
           </label>
+          <label className="switch-row" data-testid="esl-switch">
+            <span><b>ESL / language support</b><small>Seated closer to the front and teacher</small></span>
+            <input type="checkbox" checked={!!student.esl} onChange={(e) => onUpdate({ esl: e.target.checked })} />
+            <i className="switch" />
+          </label>
+          <AvatarPicker avatar={student.avatar} onChange={(avatar) => onUpdate({ avatar })} />
           <PeerPicker title="Keep apart from" hint="Tap a name to separate. Tap Must/Prefer to switch strictness." student={student} students={students}
             links={apart} onToggle={(id) => onToggleLink(id, "apart")} onStrength={onStrength} testid="apart" />
           <PeerPicker title="Keep together with" hint="We'll try to seat these students at the same desk or group." student={student} students={students}

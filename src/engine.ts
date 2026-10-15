@@ -1,6 +1,7 @@
-import type { Level, ConstraintStrength } from "./db";
+import type { Level, ConstraintStrength, LayoutType, StudentRow } from "./db";
+import { layoutSize } from "./lib";
 
-export type LayoutType = "pairs" | "groups";
+export type { LayoutType };
 
 export interface Student {
   id: string;
@@ -8,7 +9,15 @@ export interface Student {
   visibility: Level;
   behavior: Level;
   nearTeacher: boolean;
+  hearing: Level;
+  esl: boolean;
+  avatar?: string;
 }
+
+export const fromRow = (s: StudentRow): Student => ({
+  id: s.id, name: s.name, visibility: s.visibility, behavior: s.behavior, nearTeacher: s.near_teacher,
+  hearing: s.hearing ?? "high", esl: !!s.esl, avatar: s.avatar,
+});
 
 export interface Constraint {
   aId: string;
@@ -54,9 +63,10 @@ export function groupSizes(n: number): number[] {
 }
 
 export function getCapacities(count: number, layout: LayoutType, targetGroupSize?: number): number[] {
-  if (layout === "pairs") return Array(Math.ceil(count / 2)).fill(2);
   if (targetGroupSize) return groupSizesFor(count, targetGroupSize);
-  return groupSizes(count);
+  const size = layoutSize(layout);
+  if (size <= 2) return Array(Math.ceil(count / size)).fill(size);
+  return groupSizesFor(count, size);
 }
 
 function shuffle<T>(arr: T[], rng: () => number): T[] {
@@ -77,13 +87,22 @@ function seeded(seed: number): () => number {
   return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
 }
 
+// Desired seat depth (0 = front row, 1 = back); null = no preference.
+function desiredDepth(s: Student, ignoreVisibility = false): number | null {
+  if (ignoreVisibility) return null;
+  const pref = (l: Level) => (l === "low" ? 0 : l === "medium" ? 0.4 : null);
+  const opts = [pref(s.visibility), pref(s.hearing), s.esl ? 0.3 : null]
+    .filter((x): x is number => x !== null);
+  return opts.length ? Math.min(...opts) : null;
+}
+
 function seatQuality(student: Student, unitIndex: number, totalUnits: number, teacherDeskAtFront: boolean): number {
   const pos = totalUnits <= 1 ? 0 : unitIndex / (totalUnits - 1);
-  const frontPref = (4 - valueScore(student.visibility)) / 3;
-  let score = 1 - Math.abs(pos - frontPref) * 0.55;
+  const want = desiredDepth(student);
+  let score = want === null ? 1 : 1 - Math.max(0, pos - want) * 0.8;
   if (student.nearTeacher) {
     const teacherPos = teacherDeskAtFront ? 0 : 1;
-    score += (1 - Math.abs(pos - teacherPos)) * 0.3;
+    score -= Math.abs(pos - teacherPos) * 0.3;
   }
   return score;
 }
@@ -142,7 +161,10 @@ export function explain(m: { visibility: number; behavior: number; hardViolation
 
 function signature(groups: Student[][]): Set<string> {
   const pairs = new Set<string>();
-  groups.forEach((g) => g.forEach((a) => g.forEach((b) => { if (a.id < b.id) pairs.add(a.id + b.id); })));
+  groups.forEach((g, gi) => g.forEach((a) => {
+    if (g.length === 1) pairs.add(`${a.id}@${gi}`);
+    g.forEach((b) => { if (a.id < b.id) pairs.add(a.id + b.id); });
+  }));
   return pairs;
 }
 
@@ -226,7 +248,8 @@ export function generateArrangements(params: GenParams): Arrangement[] {
         let c = conflictScore(wouldConflict(student, members, constraints)) * 1000;
         c -= togetherCount(student, x.g, constraints) * 50;
         if (student.nearTeacher) c += Math.abs(pos - (teacherDeskAtFront ? 0 : 1)) * 12;
-        if (!ignoreVisibility) c += Math.abs(pos - (4 - valueScore(student.visibility)) / 3) * 5;
+        const want = desiredDepth(student, ignoreVisibility);
+        if (want !== null) c += Math.max(0, pos - want) * 8;
         if (student.behavior === "high") c += members.filter((m) => m.behavior === "high").length * 8;
         return c + x.filled * 0.4 + x.noise;
       };
