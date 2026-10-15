@@ -95,7 +95,7 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
             ) : (
               <div className="gm-class-grid">
                 {classes.map((cls) => (
-                  <button key={cls.id} className="gm-class-card" onClick={() => setSelectedClassId(cls.id)}>
+                  <button key={cls.id} data-testid={`gm-class-card-${cls.id}`} className="gm-class-card" onClick={() => setSelectedClassId(cls.id)}>
                     <span className="row-kicker">{layoutLabel(cls.layout).toUpperCase()}</span>
                     <h3>{cls.name}</h3>
                     <span className="gm-class-go">Select →</span>
@@ -119,11 +119,11 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
                 <label className="field-label">Group size</label>
                 <div className="gm-size-buttons">
                   {[2, 3, 4, 5, 6].map((n) => (
-                    <button key={n} className={groupSize === n ? "selected" : ""} onClick={() => setGroupSize(n)}>{n}</button>
+                    <button key={n} data-testid={`gm-size-${n}`} className={groupSize === n ? "selected" : ""} onClick={() => setGroupSize(n)}>{n}</button>
                   ))}
                 </div>
               </div>
-              <button className="text-button filled" onClick={handleGenerate} disabled={students.length < 2}>
+              <button className="text-button filled" data-testid="gm-generate-btn" onClick={handleGenerate} disabled={students.length < 2}>
                 Generate groups →
               </button>
             </div>
@@ -134,6 +134,7 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
                   {arrangements.map((a) => (
                     <button
                       key={a.id}
+                      data-testid={`gm-candidate-${a.name.replace(" ", "-")}`}
                       className={`gm-candidate ${a.id === selectedId ? "selected" : ""}`}
                       onClick={() => setSelectedId(a.id)}
                     >

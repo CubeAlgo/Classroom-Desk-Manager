@@ -28,3 +28,11 @@ Existing Vite + React + TS classroom Desk Planner (from Bolt, Supabase backend).
 - Room key panel (locked, conflicts, legend); drag students across tables; teacher desk drag x+y; front/back toggle fixed
 - Group Maker: no visibility, behaviour labels, score summary
 - Cozy lo-fi music with persistent global mute (synced across tabs)
+
+## Iteration 5 (Oct 2026)
+- Rotating testimonials (Schnell, Creighton, Hardimen)
+- Saved named plans + saved room layout (browser localStorage: desk-planner-plans, desk-planner-room-layouts)
+- Optional kid avatars (colour + lucide animal), Hearing level, ESL toggle (migration adds hearing/esl/avatar)
+- Layouts: 1s, Pairs, 3s, 4s, 5s
+- Group Maker drag between groups; multi-select copy/paste students between classes (Ctrl/Cmd+C/V)
+- Regenerate gives fresh options; uneven group size penalty
