@@ -73,3 +73,15 @@ kbd { font: 700 10px "Inter", sans-serif; padding: 2px 5px; border-radius: 5px; 
   .option-grid.five { grid-template-columns: 1fr 1fr; }
   .class-details { grid-template-columns: 1fr; }
 }
+
+/* ── v6: roomier map, vertical group tables, hover controls ── */
+.table-container.group-container { flex-direction: row; align-items: center; gap: 8px; }
+.group-col { display: flex; flex-direction: column; gap: 8px; }
+.group-col .seat { width: 92px; min-width: 92px; padding: 6px 6px; }
+.group-surface.vertical { width: 58px; border-radius: 10px; }
+.group-surface.vertical .table-surface-label { writing-mode: vertical-rl; transform: rotate(180deg); }
+.pair-seats .seat { min-width: 90px; max-width: 120px; }
+.seat-name { white-space: nowrap; }
+.table-group-header { position: relative; justify-content: center; min-height: 18px; }
+.table-group .rotate-controls { position: absolute; left: 50%; bottom: calc(100% + 2px); transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity .15s; box-shadow: var(--shadow-sm); z-index: 3; }
+.table-group:hover .rotate-controls, .table-group.dragging-desk .rotate-controls { opacity: 1; pointer-events: auto; }

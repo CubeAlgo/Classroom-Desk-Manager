@@ -13,6 +13,11 @@ interface DeskPosition { x: number; y: number; }
 // Teacher desk Y positions: top strip or bottom strip (percent of canvas)
 const TEACHER_FRONT_Y = 4;
 const TEACHER_BACK_Y = 88;
+const GAP_X = 36;
+const GAP_Y = 44;
+const FOOTPRINTS: Record<number, { w: number; h: number }> = {
+  1: { w: 110, h: 104 }, 2: { w: 200, h: 104 }, 3: { w: 250, h: 150 }, 4: { w: 250, h: 150 }, 5: { w: 250, h: 200 },
+};
 
 export function Planner({
   classId, classData, onNavigate, onClassUpdated,
@@ -28,15 +33,15 @@ export function Planner({
   const [arrangements, setArrangements] = useState<Arrangement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentGroups, setCurrentGroups] = useState<Student[][]>([]);
-  const [currentRotations, setCurrentRotations] = useState<number[]>([]);
   const [savedLayout] = useState(() => getRoomLayout(classId));
   const [deskPositions, setDeskPositions] = useState<DeskPosition[]>(savedLayout?.desks ?? []);
+  const [currentRotations, setCurrentRotations] = useState<number[]>(savedLayout?.rotations ?? []);
   const [plans, setPlans] = useState<SavedPlan[]>(() => listPlans(classId));
   const [planName, setPlanName] = useState("");
   const [notice, setNotice] = useState("");
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
   // Teacher desk X position (0-100 percent). Y is determined by front/back setting.
-  const [teacherDeskX, setTeacherDeskX] = useState(savedLayout?.teacher.x ?? 35);
+  const [teacherDeskX, setTeacherDeskX] = useState(savedLayout?.teacher.x ?? 50);
 
   const seedRef = useRef(0);
   const studentsRef = useRef(students);
@@ -74,17 +79,34 @@ export function Planner({
 
   useEffect(() => { load(); }, [load]);
 
+  const size = layoutSize(layout);
+  const foot = FOOTPRINTS[size] ?? FOOTPRINTS[2];
+  const canvasWidth = () => document.getElementById("classroom-canvas")?.clientWidth || 1100;
+  const gridCols = (count: number) => Math.max(1, Math.min(count, Math.floor((canvasWidth() - 40 + GAP_X) / (foot.w + GAP_X))));
+  const topPx = teacherDeskAtFront ? 96 : 36;
+  const canvasHeight = (count: number) => Math.max(680, topPx + Math.ceil(count / gridCols(count)) * (foot.h + GAP_Y) + (teacherDeskAtFront ? 40 : 110));
+
   const buildInitialPositions = (count: number): DeskPosition[] => {
-    const size = layoutSize(layout);
-    const cols = ({ 1: 6, 2: 4, 3: 4, 4: 3, 5: 3 } as Record<number, number>)[size] ?? 4;
-    const rows = Math.ceil(count / cols);
-    const yStart = teacherDeskAtFront ? 14 : 4;
-    const yStep = rows > 1 ? Math.min(size <= 2 ? 22 : 36, 70 / (rows - 1)) : 0;
+    const W = canvasWidth();
+    const cols = gridCols(count);
+    const H = canvasHeight(count);
+    const offX = (W - (cols * foot.w + (cols - 1) * GAP_X)) / 2;
     return Array.from({ length: count }, (_, i) => ({
-      x: 3 + (i % cols) * (94 / cols),
-      y: yStart + Math.floor(i / cols) * yStep,
+      x: ((offX + (i % cols) * (foot.w + GAP_X)) / W) * 100,
+      y: ((topPx + Math.floor(i / cols) * (foot.h + GAP_Y)) / H) * 100,
     }));
   };
+
+  // Side tables tilt toward the board; middle ones face it straight.
+  const defaultRotation = (gi: number, count: number) => {
+    const cols = gridCols(count);
+    if (size < 3 || cols < 3) return 0;
+    const c = gi % cols;
+    return c === 0 ? 14 : c === cols - 1 ? -14 : 0;
+  };
+  const withRotations = (a: Arrangement): Arrangement => ({
+    ...a, rotations: a.groups.map((_, gi) => rotationsRef.current[gi] ?? defaultRotation(gi, a.groups.length)),
+  });
 
   const doGenerate = useCallback(() => {
     const s = studentsRef.current;
@@ -102,11 +124,12 @@ export function Planner({
       teacherDeskAtFront,
       seed: seedRef.current++,
     });
-    setArrangements(results);
-    if (results.length > 0) {
-      setSelectedId(results[0].id);
-      setCurrentGroups(results[0].groups);
-      setCurrentRotations(results[0].rotations);
+    const rotated = results.map(withRotations);
+    setArrangements(rotated);
+    if (rotated.length > 0) {
+      setSelectedId(rotated[0].id);
+      setCurrentGroups(rotated[0].groups);
+      setCurrentRotations(rotated[0].rotations);
       setDeskPositions((prev) =>
         results[0].groups.map((_, gi) => prev[gi] ?? buildInitialPositions(results[0].groups.length)[gi])
       );
@@ -197,7 +220,7 @@ export function Planner({
   }, [teacherDeskAtFront]);
 
   const flash = (msg: string) => { setNotice(msg); setTimeout(() => setNotice(""), 2600); };
-  const currentLayout = () => ({ desks: currentGroups.map((_, gi) => deskPositions[gi] || buildInitialPositions(currentGroups.length)[gi]), teacher: { x: teacherDeskX, y: teacherDeskY } });
+  const currentLayout = () => ({ desks: currentGroups.map((_, gi) => deskPositions[gi] || buildInitialPositions(currentGroups.length)[gi]), teacher: { x: teacherDeskX, y: teacherDeskY }, rotations: currentRotations });
 
   const handleSaveLayout = () => { saveRoomLayout(classId, currentLayout()); flash("Room layout saved — new plans will use it"); };
 
@@ -264,7 +287,7 @@ export function Planner({
       <div className="planner-body">
         <div className="planner-canvas-col">
           <div className="board-strip">WHITEBOARD</div>
-          <div className="classroom-canvas" id="classroom-canvas">
+          <div className="classroom-canvas" id="classroom-canvas" style={{ height: canvasHeight(currentGroups.length), minHeight: 0, flex: "none" }}>
             <TeacherDesk
               x={teacherDeskX}
               y={teacherDeskY}
@@ -561,7 +584,7 @@ function DraggableTableGroup({
           <div className="seat-badges">
             <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
             <span className="badge" style={{ background: BEH_COLORS[student.behavior] + "20", color: BEH_COLORS[student.behavior] }} title={`Behavior: ${student.behavior}`}>B</span>
-            {student.hearing !== "high" && <span className="badge" style={{ background: VIS_COLORS[student.hearing] + "20", color: VIS_COLORS[student.hearing] }} title={`Hearing: ${student.hearing}`}>H</span>}
+            {<span className="badge" style={{ background: VIS_COLORS[student.hearing] + "20", color: VIS_COLORS[student.hearing] }} title={`Hearing: ${student.hearing}`}>H</span>}
             {student.esl && <span className="badge esl-badge" title="ESL / language support">ESL</span>}
             {student.nearTeacher && <span className="badge near-teacher-badge" title="Needs to sit near teacher">★</span>}
             {isLocked && <span className="badge lock-badge">🔒</span>}
@@ -596,14 +619,14 @@ function DraggableTableGroup({
         onDrop={() => { if (dragSource && dragSource.group !== groupIndex) { onMoveStudent(dragSource.group, dragSource.seat, groupIndex, group.length); dragSource = null; } }}>
         {isPair ? (
           <>
-            <div className={`table-surface pair-surface ${size === 1 ? "single-surface" : ""}`}><span className="table-surface-label">{label}</span></div>
+            <div className={`table-surface pair-surface ${size === 1 ? "single-surface" : ""}`} />
             <div className="seats-container pair-seats">{group.map((s, si) => renderSeat(s, si))}</div>
           </>
         ) : (
           <>
-            <div className="seats-container group-row">{group.slice(0, topCount).map((s, i) => renderSeat(s, i))}</div>
-            <div className="table-surface group-surface" style={{ width: Math.max(topCount, 2) * 84 + 10 }}><span className="table-surface-label">{label}</span></div>
-            <div className="seats-container group-row">{group.slice(topCount).map((s, i) => renderSeat(s, topCount + i))}</div>
+            <div className="seats-container group-col">{group.slice(0, topCount).map((s, i) => renderSeat(s, i))}</div>
+            <div className="table-surface group-surface vertical" style={{ height: Math.max(topCount, 2) * 50 }}><span className="table-surface-label">{label}</span></div>
+            <div className="seats-container group-col">{group.slice(topCount).map((s, i) => renderSeat(s, topCount + i))}</div>
           </>
         )}
       </div>
