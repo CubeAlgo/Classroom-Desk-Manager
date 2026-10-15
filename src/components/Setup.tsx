@@ -145,7 +145,7 @@ export function Setup({ classId, classData, onNavigate, onClassUpdated }: {
       <SiteHeader active="classes" onNavigate={onNavigate} />
       <div className="setup-nav">
         <button className="back-btn" data-testid="setup-back-btn" onClick={() => onNavigate("hub")}>← All classes</button>
-        <button className="text-button filled" data-testid="setup-review-map-btn" onClick={() => onNavigate("planner", classId)} disabled={students.length === 0}>Review classroom map →</button>
+        <button className="text-button filled map-cta" data-testid="setup-review-map-btn" onClick={() => onNavigate("planner", classId)} disabled={students.length === 0} title={students.length === 0 ? "Add students first" : ""}><span className="map-cta-copy"><b>See seating arrangements</b><small>{students.length === 0 ? "Add students first" : `${students.length} students · 5 options ready`}</small></span><span className="map-cta-arrow">→</span></button>
       </div>
 
       <main className="setup-main">

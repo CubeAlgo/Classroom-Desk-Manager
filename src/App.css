@@ -1421,6 +1421,108 @@ a { color: inherit; }
 .group-surface { height: 64px; border-radius: 10px; }
 .classroom-canvas { min-height: 680px; }
 
+/* ── Joyful palette + v3 polish ─────────────────────────────── */
+:root {
+  --coral: #f2785c; --coral-bg: #fde6df;
+  --sun: #f2b632;   --sun-bg: #fdf1d3;
+  --mint: #3fb68b;  --mint-bg: #dcf3e9;
+  --sky: #4a9be8;   --sky-bg: #deecfb;
+  --grape: #9a6fd6; --grape-bg: #ece3f8;
+}
+.site-header { height: 68px; padding: 0 32px; }
+.brand-lockup { gap: 12px; align-items: center; }
+.brand-mark { width: 40px; height: 40px; border-radius: 11px; font: 700 22px/1 Georgia, serif; padding: 0 0 4px 2px; display: flex; align-items: center; justify-content: center; }
+.brand-name { font: 600 20px Georgia, serif; letter-spacing: -.02em; }
+
+.page-title-kicker { display: block; font: 800 15px "Inter", sans-serif; letter-spacing: .02em; color: var(--p-700); }
+.page-title-kicker em { font-style: normal; color: var(--n-400); margin: 0 4px; }
+.classes-heading { min-height: 96px; }
+.classes-heading h1 { font-size: 26px; margin: 10px 0 0; color: var(--text-soft); }
+
+.home-main { padding-top: 72px; }
+.home-hero h1 { font-size: clamp(46px, 5.4vw, 72px); }
+.home-hero-copy > p { font-size: 19px; color: var(--text-soft); }
+.home-tools { margin-top: 64px; }
+.home-tool h3 { margin-top: 24px; font-size: 30px; }
+.home-tool p { font-size: 15px; }
+.home-tool:not(.primary) { background: var(--sun-bg); border-color: #f1dfaa; }
+
+.hp-room { height: 380px; background-color: #fffdf6; }
+.hp-board { background: #fff; border-color: #cfd8d2; }
+.hp-teacher { background: var(--sun-bg); border-color: var(--sun); color: #8a5c00; }
+.hp-seats b { width: 40px; padding: 4px 0; font-size: 9px; font-weight: 800; border: 0; color: #fff; border-radius: 7px; box-shadow: 0 2px 0 rgba(0,0,0,.08); }
+.hp-seats b.coral { background: var(--coral); }
+.hp-seats b.sun { background: var(--sun); }
+.hp-seats b.mint { background: var(--mint); }
+.hp-seats b.sky { background: var(--sky); }
+.hp-seats b.grape { background: var(--grape); }
+.hp-surface { height: 26px; border: 0; border-radius: 7px; }
+.hp-surface.coral { background: var(--coral-bg); } .hp-surface.sun { background: var(--sun-bg); }
+.hp-surface.mint { background: var(--mint-bg); } .hp-surface.sky { background: var(--sky-bg); } .hp-surface.grape { background: var(--grape-bg); }
+.hp-sticker { position: absolute; display: grid; place-items: center; animation: float 5s ease-in-out infinite; }
+.hp-sticker.star { right: 7%; top: 12%; width: 36px; height: 36px; border-radius: 50%; background: var(--sun); color: #fff; font-size: 18px; box-shadow: 0 6px 14px rgba(242,182,50,.4); }
+.hp-sticker.apple { left: 7%; top: 13%; width: 26px; height: 26px; border-radius: 50% 50% 46% 46%; background: var(--coral); box-shadow: 0 6px 14px rgba(242,120,92,.35); animation-delay: 1.5s; }
+
+/* Seating options — joyful score tiles */
+.right-panel-head h3 { font-size: 22px; }
+.candidate-card { grid-template-columns: 56px 1fr; padding: 12px 14px; border-radius: 14px; background: var(--panel); transition: transform .15s, border-color .15s, box-shadow .15s; }
+.candidate-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.candidate-card.selected { border-color: var(--p-600); box-shadow: 0 0 0 3px var(--p-100); }
+.candidate-score { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font: 800 21px "Inter", sans-serif; color: #fff; }
+.tier-great { background: var(--mint); }
+.tier-good { background: var(--sky); }
+.tier-ok { background: var(--sun); }
+.tier-low { background: var(--coral); }
+.candidate-title { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.candidate-detail { font-size: 12px; color: var(--text-soft); line-height: 1.4; margin-top: 3px; }
+.best-chip { font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: var(--sun-bg); color: #8a5c00; padding: 3px 7px; border-radius: 999px; }
+.insight-score-display { font-family: "Inter", sans-serif; font-weight: 800; }
+.tier-text-great { color: var(--mint); } .tier-text-good { color: var(--sky); } .tier-text-ok { color: #c28d10; } .tier-text-low { color: var(--coral); }
+.insight-summary { font-size: 14px; font-weight: 600; color: var(--text); margin: 6px 0 14px; line-height: 1.45; }
+.insight-meters { display: grid; gap: 10px; }
+.meter span { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--n-600); margin-bottom: 5px; }
+.meter i { display: block; height: 8px; border-radius: 999px; background: var(--n-100); overflow: hidden; }
+.meter em { display: block; height: 100%; border-radius: 999px; transition: width .4s ease; }
+.tier-bg-great { background: var(--mint); } .tier-bg-good { background: var(--sky); } .tier-bg-ok { background: var(--sun); } .tier-bg-low { background: var(--coral); }
+.teacher-desk { cursor: grab; touch-action: none; user-select: none; z-index: 5; }
+.teacher-desk.dragging { cursor: grabbing; box-shadow: var(--shadow-lg); }
+
+/* Group maker */
+.gm-candidate .candidate-score { width: 44px; height: 44px; font-size: 17px; border-radius: 12px; }
+.gm-candidate-copy { display: flex; flex-direction: column; text-align: left; gap: 2px; min-width: 0; }
+.gm-candidate-copy small { font-size: 11px; color: var(--text-soft); line-height: 1.35; }
+
+/* ── v4: names, key panel, CTA, quote ─────────────────────────── */
+.seat-name { font-size: 13px; overflow: visible; text-overflow: clip; }
+.pair-seats .seat, .group-row .seat { width: auto; min-width: 84px; padding: 7px 10px; }
+.map-cta { padding: 12px 20px; border-radius: 14px; gap: 16px; font-size: 15px; box-shadow: 0 10px 24px rgba(40,111,92,.25); }
+.map-cta-copy { display: flex; flex-direction: column; text-align: left; line-height: 1.2; }
+.map-cta-copy b { font-size: 16px; }
+.map-cta-copy small { font-size: 11px; font-weight: 600; opacity: .8; margin-top: 3px; }
+.map-cta-arrow { font-size: 22px; transition: transform .2s; }
+.map-cta:hover .map-cta-arrow { transform: translateX(4px); }
+.candidate-conflict { margin-top: 5px; font-size: 11px; font-weight: 700; color: var(--red); background: var(--red-bg); border-radius: 6px; padding: 3px 7px; display: inline-block; }
+.key-panel .right-panel-head h3 { font-size: 20px; }
+.key-row { display: grid; gap: 3px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); font-size: 12px; }
+.key-row b { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--n-500); }
+.key-row span { font-weight: 600; color: var(--text); }
+.key-row span.bad { color: var(--red); } .key-row span.good { color: var(--mint); }
+.key-legend { list-style: none; padding: 0; margin: 12px 0 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: var(--n-600); }
+.key-legend li { display: flex; align-items: center; gap: 7px; }
+.key-legend i { width: 16px; height: 12px; border-radius: 4px; border: 2px solid; }
+.k-lock { border-color: var(--green) !important; background: var(--green-bg); }
+.k-hard { border-color: var(--red) !important; background: var(--red-bg); }
+.k-soft { border-color: var(--amber) !important; background: var(--amber-bg); }
+.k-badge { font-style: normal; font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 5px; background: var(--n-100); }
+.k-badge.star { background: var(--sun-bg); color: #8a5c00; }
+.brand-mark { padding: 0; }
+.home-quote { position: relative; margin: 72px auto 0; max-width: 760px; text-align: center; padding: 44px 40px 36px; border-radius: 22px; background: var(--sun-bg); border: 1px solid #f1dfaa; }
+.quote-mark { position: absolute; top: -26px; left: 50%; transform: translateX(-50%); width: 52px; height: 52px; border-radius: 50%; background: var(--coral); color: #fff; font: 700 40px/62px Georgia, serif; }
+.home-quote blockquote { margin: 0; font: 500 26px/1.35 Georgia, serif; color: var(--text); letter-spacing: -.01em; }
+.home-quote cite { margin-top: 22px; display: inline-flex; align-items: center; gap: 10px; font-style: normal; text-align: left; }
+.home-quote cite i { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--sky); color: #fff; font: 800 12px "Inter", sans-serif; font-style: normal; }
+.home-quote cite b { display: block; font-size: 14px; } .home-quote cite small { color: var(--muted); font-size: 12px; }
+
 @media (max-width: 1100px) {
   .planner-body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
   .planner-right-col {

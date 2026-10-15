@@ -44,7 +44,8 @@ export function Planner({
 
   const layout: LayoutType = classData?.layout ?? "pairs";
   const teacherDeskAtFront: boolean = classData?.teacher_desk_position !== "back";
-  const teacherDeskY = teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y;
+  const [teacherDeskY, setTeacherDeskY] = useState(teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y);
+  useEffect(() => { setTeacherDeskY(teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y); }, [teacherDeskAtFront]);
 
   const toEngineStudents = (rows: typeof students): Student[] =>
     rows.map((s) => ({ id: s.id, name: s.name, visibility: s.visibility, behavior: s.behavior, nearTeacher: s.near_teacher }));
@@ -164,10 +165,9 @@ export function Planner({
     });
   };
 
-  const handleMoveTeacherDesk = (x: number) => {
-    // Constrain: keep desk within 10%-70% horizontally (avoid corners)
-    const clamped = Math.max(10, Math.min(70, x));
-    setTeacherDeskX(clamped);
+  const handleMoveTeacherDesk = (x: number, y: number) => {
+    setTeacherDeskX(Math.max(6, Math.min(94, x)));
+    setTeacherDeskY(Math.max(1, Math.min(92, y)));
   };
 
   const handleToggleTeacherDeskSide = () => {
@@ -206,11 +206,6 @@ export function Planner({
         </div>
         <div className="planner-subheader-right">
           {lockedIds.size > 0 && <span className="locked-pill">{lockedIds.size} locked</span>}
-          <div className="planner-legend">
-            <span className="legend-dot green" /> Locked
-            <span className="legend-dot amber" style={{ marginLeft: 10 }} /> Soft conflict
-            <span className="legend-dot red" style={{ marginLeft: 10 }} /> Hard conflict
-          </div>
           <button className="ghost-pill" data-testid="planner-desk-toggle-btn" onClick={handleToggleTeacherDeskSide}>
             Desk: {teacherDeskAtFront ? "Front" : "Back"} (swap)
           </button>
@@ -253,8 +248,7 @@ export function Planner({
         <div className="planner-right-col">
           <section className="right-panel">
             <div className="right-panel-head">
-              <span className="section-kicker">CANDIDATES</span>
-              <h3>Arrangements</h3>
+              <h3>Seating options</h3>
               <span className="count-pill">{arrangements.length}</span>
             </div>
             {arrangements.length === 0 ? (
@@ -263,12 +257,12 @@ export function Planner({
               <div className="candidate-list">
                 {arrangements.map((a) => (
                   <div key={a.id} className={`candidate-card ${a.id === selectedId ? "selected" : ""}`} onClick={() => handleSelectArrangement(a)}>
-                    <div className="candidate-score">{a.score}</div>
+                    <div className={`candidate-score tier-${tier(a.score)}`}>{a.score}</div>
                     <div>
-                      <div className="candidate-title">{a.name}</div>
-                      <div className="candidate-detail">Vis {a.visibility}% · Beh {a.behavior}% · {a.hardViolations} hard</div>
+                      <div className="candidate-title">{a.name}{a === arrangements[0] && <span className="best-chip">Top pick</span>}</div>
+                      <div className="candidate-detail">{a.summary}</div>
+                      {a.hardViolations > 0 && <div className="candidate-conflict" data-testid={`candidate-conflict-${a.name}`}>Must apart: {conflictPairs(a.id === selectedId ? currentGroups : a.groups, ec).join(" · ")}</div>}
                     </div>
-                    <span className={`status-chip ${a.hardViolations === 0 ? "green" : "red"}`}>{a.hardViolations === 0 ? "Clean" : "Review"}</span>
                   </div>
                 ))}
               </div>
@@ -277,41 +271,79 @@ export function Planner({
 
           <section className="right-panel">
             <div className="right-panel-head">
-              <span className="section-kicker">INSIGHT</span>
-              <h3>Why this arrangement?</h3>
+              <h3>Why this score?</h3>
             </div>
             {insight ? (
               <>
-                <div className="insight-score-display">{insight.score}<small>/100</small></div>
-                <ul className="insight-list">
-                  <li>{insight.visibility}% visibility fit across the class.</li>
-                  <li>{insight.behavior}% behavior-balancing score.</li>
-                  <li>{insight.hardViolations === 0 ? "All hard separation rules satisfied." : `${insight.hardViolations} hard conflict${insight.hardViolations === 1 ? "" : "s"} remain.`}</li>
-                  {insight.softViolations > 0 && <li>{insight.softViolations} soft preference conflict{insight.softViolations === 1 ? "" : "s"} remain.</li>}
-                  {lockedIds.size > 0 && <li>{lockedIds.size} locked student{lockedIds.size === 1 ? "" : "s"} kept in place.</li>}
-                </ul>
-                <p className="insight-note">Tip: click any seat to lock it, then Regenerate to keep those students in place. Drag the teacher's desk to reposition it along the front or back wall.</p>
+                <div className={`insight-score-display tier-text-${tier(insight.score)}`}>{insight.score}<small>/100</small></div>
+                <p className="insight-summary" data-testid="planner-insight-summary">{selected?.summary}</p>
+                <div className="insight-meters">
+                  <Meter label="Seeing the board" value={insight.visibility} />
+                  <Meter label="Calm tables" value={insight.behavior} />
+                </div>
+                <p className="insight-note">Click a seat to lock it · drag the teacher's desk anywhere</p>
               </>
             ) : (
               <p className="muted-text">Select a candidate above to see what was prioritized.</p>
             )}
           </section>
+          <KeyPanel locked={currentGroups.flat().filter((st) => lockedIds.has(st.id))} conflicts={conflictPairs(currentGroups, ec)} />
         </div>
       </div>
     </div>
   );
 }
 
+export const tier = (s: number) => (s >= 90 ? "great" : s >= 80 ? "good" : s >= 70 ? "ok" : "low");
+
+export function Meter({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="meter">
+      <span>{label}<b>{value}%</b></span>
+      <i><em className={`tier-bg-${tier(value)}`} style={{ width: `${value}%` }} /></i>
+    </div>
+  );
+}
+
+let dragSource: { group: number; seat: number } | null = null;
+
+export const shortName = (name: string) => {
+  const parts = (name || "?").trim().split(/\s+/);
+  return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.` : parts[0];
+};
+
+function conflictPairs(groups: Student[][], constraints: Constraint[]) {
+  const where = new Map<string, Student & { gi: number }>();
+  groups.forEach((g, gi) => g.forEach((s) => where.set(s.id, { ...s, gi })));
+  return constraints.filter((c) => c.strength === "hard" && where.get(c.aId) && where.get(c.aId)?.gi === where.get(c.bId)?.gi)
+    .map((c) => `${shortName(where.get(c.aId)!.name)} & ${shortName(where.get(c.bId)!.name)}`);
+}
+
+function KeyPanel({ locked, conflicts }: { locked: Student[]; conflicts: string[] }) {
+  return (
+    <section className="right-panel key-panel" data-testid="planner-key-panel">
+      <div className="right-panel-head"><h3>Room key</h3></div>
+      <div className="key-row"><b>Locked in place</b><span data-testid="key-locked">{locked.length ? locked.map((s) => shortName(s.name)).join(", ") : "None — click a seat to lock"}</span></div>
+      <div className="key-row"><b>Must-apart conflicts</b><span data-testid="key-conflicts" className={conflicts.length ? "bad" : "good"}>{conflicts.length ? conflicts.join(" · ") : "None"}</span></div>
+      <ul className="key-legend">
+        <li><i className="k-lock" /> Locked</li><li><i className="k-hard" /> Must apart</li><li><i className="k-soft" /> Prefer apart</li>
+        <li><em className="k-badge">V</em> Visibility</li><li><em className="k-badge">B</em> Behaviour</li><li><em className="k-badge star">★</em> Near teacher</li>
+      </ul>
+      <p className="insight-note">Drag a student onto any seat or table to move them</p>
+    </section>
+  );
+}
+
 // ── Teacher Desk (draggable horizontally along front or back wall) ──
 
-function TeacherDesk({ x, y, onMove }: { x: number; y: number; onMove: (x: number) => void }) {
-  const dragRef = useRef<{ startX: number; startXPercent: number } | null>(null);
+function TeacherDesk({ x, y, onMove }: { x: number; y: number; onMove: (x: number, y: number) => void }) {
+  const dragRef = useRef<{ startX: number; startY: number; startXPercent: number; startYPercent: number } | null>(null);
   const [dragging, setDragging] = useState(false);
 
   const onPointerDown = (e: React.PointerEvent) => {
     e.stopPropagation();
     setDragging(true);
-    dragRef.current = { startX: e.clientX, startXPercent: x };
+    dragRef.current = { startX: e.clientX, startY: e.clientY, startXPercent: x, startYPercent: y };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
@@ -322,7 +354,8 @@ function TeacherDesk({ x, y, onMove }: { x: number; y: number; onMove: (x: numbe
     const rect = canvas?.getBoundingClientRect();
     if (!rect) return;
     const dx = ((e.clientX - dragRef.current.startX) / rect.width) * 100;
-    onMove(dragRef.current.startXPercent + dx);
+    const dy = ((e.clientY - dragRef.current.startY) / rect.height) * 100;
+    onMove(dragRef.current.startXPercent + dx, dragRef.current.startYPercent + dy);
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
@@ -338,7 +371,7 @@ function TeacherDesk({ x, y, onMove }: { x: number; y: number; onMove: (x: numbe
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      title="Drag to reposition along the wall"
+      title="Drag to move the teacher's desk anywhere"
     >
       <span>Teacher's Desk</span>
     </div>
@@ -364,7 +397,6 @@ function DraggableTableGroup({
   onToggleLock: (id: string) => void;
 }) {
   const [seatDragOver, setSeatDragOver] = useState<number | null>(null);
-  const seatDragRef = useRef<{ group: number; seat: number } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const rotateRef = useRef<{ startAngle: number; startRot: number } | null>(null);
   const deskDragRef = useRef<{ startX: number; startY: number; startPos: DeskPosition } | null>(null);
@@ -385,9 +417,9 @@ function DraggableTableGroup({
     }
   }
 
-  const handleSeatDragStart = (si: number) => { seatDragRef.current = { group: groupIndex, seat: si }; };
+  const handleSeatDragStart = (si: number) => { dragSource = { group: groupIndex, seat: si }; };
   const handleSeatDrop = (si: number) => {
-    if (seatDragRef.current) { onMoveStudent(seatDragRef.current.group, seatDragRef.current.seat, groupIndex, si); seatDragRef.current = null; }
+    if (dragSource) { onMoveStudent(dragSource.group, dragSource.seat, groupIndex, si); dragSource = null; }
     setSeatDragOver(null);
   };
 
@@ -460,7 +492,7 @@ function DraggableTableGroup({
         style={seatDragOver === si ? { outline: "2px dashed #3a8c5c", outlineOffset: "2px" } : undefined}
       >
         <div className="seat-inner">
-          <span className="seat-name">{student.name || "?"}</span>
+          <span className="seat-name" title={student.name}>{shortName(student.name)}</span>
           <div className="seat-badges">
             <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
             <span className="badge" style={{ background: BEH_COLORS[student.behavior] + "20", color: BEH_COLORS[student.behavior] }} title={`Behavior: ${student.behavior}`}>B</span>
@@ -492,7 +524,9 @@ function DraggableTableGroup({
         </div>
       </div>
 
-      <div className={`table-container ${isPair ? "pair-container" : "group-container"}`} ref={tableRef}>
+      <div className={`table-container ${isPair ? "pair-container" : "group-container"}`} ref={tableRef}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={() => { if (dragSource && dragSource.group !== groupIndex) { onMoveStudent(dragSource.group, dragSource.seat, groupIndex, group.length); dragSource = null; } }}>
         {isPair ? (
           <>
             <div className="table-surface pair-surface"><span className="table-surface-label">{label}</span></div>

@@ -27,6 +27,7 @@ export interface Arrangement {
   hardViolations: number;
   softViolations: number;
   lockedCount: number;
+  summary: string;
 }
 
 export function groupSizesFor(n: number, targetSize: number): number[] {
@@ -102,25 +103,54 @@ function penalty(groups: Student[][], constraints: Constraint[]) {
   return { hardViolations: hard, softViolations: soft };
 }
 
-function scoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: Set<string>, teacherDeskAtFront: boolean) {
+function scoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: Set<string>, teacherDeskAtFront: boolean, ignoreVisibility = false) {
   const total = groups.length;
-  let vis = 0, beh = 0, locked = 0;
+  let vis = 0, locked = 0, excess = 0, nearMiss = 0;
+  const hasCalm = groups.some((g) => g.some((s) => s.behavior === "low"));
   groups.forEach((g, gi) => {
+    const high = g.filter((s) => s.behavior === "high").length;
+    const med = g.filter((s) => s.behavior === "medium").length;
+    const low = g.filter((s) => s.behavior === "low").length;
+    excess += Math.max(0, high - 1) * 2 + (high >= 1 && med >= 2 ? 0.5 : 0) + (hasCalm && high >= 1 && low === 0 ? 0.6 * high : 0);
     g.forEach((s) => {
       vis += seatQuality(s, gi, total, teacherDeskAtFront) * 100;
-      beh += 100 - (valueScore(s.behavior) - 1) * 8;
       if (lockedIds.has(s.id)) locked++;
+      if (s.nearTeacher && total > 2) {
+        const dist = teacherDeskAtFront ? gi : total - 1 - gi;
+        if (dist > Math.max(1, Math.floor(total / 3))) nearMiss++;
+      }
     });
   });
   const n = Math.max(groups.reduce((a, g) => a + g.length, 0), 1);
-  vis /= n; beh /= n;
+  vis /= n;
+  const beh = Math.max(0, 100 - excess * 9 - nearMiss * 6);
   const p = penalty(groups, constraints);
-  const score = Math.max(0, Math.round(
-    vis * 0.5 + beh * 0.3 +
-    (p.hardViolations === 0 ? 15 : Math.max(0, 15 - p.hardViolations * 7)) +
-    Math.max(0, 5 - p.softViolations * 2)
-  ));
-  return { score, visibility: Math.round(vis), behavior: Math.round(beh), hardViolations: p.hardViolations, softViolations: p.softViolations, lockedCount: locked };
+  const rules = (p.hardViolations === 0 ? 15 : Math.max(0, 15 - p.hardViolations * 7)) + Math.max(0, 5 - p.softViolations * 2);
+  const score = Math.max(0, Math.round(ignoreVisibility ? beh * 0.8 + rules : vis * 0.45 + beh * 0.35 + rules));
+  const m = { score, visibility: Math.round(vis), behavior: Math.round(beh), hardViolations: p.hardViolations, softViolations: p.softViolations, lockedCount: locked };
+  return { ...m, summary: explain(m, ignoreVisibility) };
+}
+
+export function explain(m: { visibility: number; behavior: number; hardViolations: number; softViolations: number }, ignoreVisibility = false): string {
+  const notes: string[] = [];
+  if (m.hardViolations) notes.push(`${m.hardViolations} must-apart pair seated together`);
+  if (m.softViolations) notes.push(`${m.softViolations} preference missed`);
+  if (m.behavior < 90) notes.push("Energetic students share a table");
+  if (!notes.length) return "Every rule met, energy well spread";
+  return notes.slice(0, 2).join(" · ");
+}
+
+function signature(groups: Student[][]): Set<string> {
+  const pairs = new Set<string>();
+  groups.forEach((g) => g.forEach((a) => g.forEach((b) => { if (a.id < b.id) pairs.add(a.id + b.id); })));
+  return pairs;
+}
+
+function overlap(a: Set<string>, b: Set<string>) {
+  if (!a.size) return 1;
+  let same = 0;
+  a.forEach((p) => { if (b.has(p)) same++; });
+  return same / a.size;
 }
 
 function wouldConflict(student: Student, group: Student[], constraints: Constraint[]): "hard" | "soft" | false {
@@ -153,10 +183,11 @@ export interface GenParams {
   count?: number;
   targetGroupSize?: number;
   teacherDeskAtFront?: boolean;
+  ignoreVisibility?: boolean;
 }
 
 export function generateArrangements(params: GenParams): Arrangement[] {
-  const { students, constraints, layout, lockedIds, currentGroups, currentRotations, count = 5, targetGroupSize, teacherDeskAtFront = true } = params;
+  const { students, constraints, layout, lockedIds, currentGroups, currentRotations, count = 5, targetGroupSize, teacherDeskAtFront = true, ignoreVisibility = false } = params;
   if (students.length === 0) return [];
 
   const capacities = getCapacities(students.length, layout, targetGroupSize);
@@ -168,11 +199,11 @@ export function generateArrangements(params: GenParams): Arrangement[] {
     if (lockedIds.has(s.id)) lockedPlacement.set(s.id, [gi, si]);
   }));
 
-  for (let i = 0; i < count + 3; i++) {
-    const rng = seeded(41 + i * 17 + students.length * 3);
-    const groups: (Student | null)[][] = Array.from({ length: totalUnits }, (_, gi) =>
-      Array(capacities[gi]).fill(null)
-    );
+  const ATTEMPTS = 48;
+  for (let i = 0; i < ATTEMPTS; i++) {
+    const rng = seeded(41 + i * 977 + students.length * 3);
+    const jitter = i === 0 ? 0 : 1.5 + (i % 8) * 1.2;
+    const groups: (Student | null)[][] = Array.from({ length: totalUnits }, (_, gi) => Array(capacities[gi]).fill(null));
 
     for (const s of students) {
       if (!lockedIds.has(s.id)) continue;
@@ -180,39 +211,26 @@ export function generateArrangements(params: GenParams): Arrangement[] {
       if (p && p[0] < groups.length && p[1] < groups[p[0]].length) groups[p[0]][p[1]] = s;
     }
 
-    const unplaced = shuffle(students.filter((s) => !lockedIds.has(s.id)), rng);
-    unplaced.sort((a, b) => valueScore(b.visibility) - valueScore(a.visibility));
-    const shuffled = shuffle(unplaced, rng);
+    const order = shuffle(students.filter((s) => !lockedIds.has(s.id)), rng);
+    order.sort((a, b) => Number(b.nearTeacher) - Number(a.nearTeacher));
 
-    for (const student of shuffled) {
+    for (const student of order) {
       const choices = groups
-        .map((g, gi) => ({ gi, g, cap: capacities[gi], filled: g.filter(Boolean).length }))
-        .filter((x) => x.filled < x.cap);
+        .map((g, gi) => ({ gi, g, filled: g.filter(Boolean).length, noise: rng() * jitter }))
+        .filter((x) => x.filled < capacities[x.gi]);
       if (!choices.length) continue;
-
-      choices.sort((a, b) => {
-        const aConflict = wouldConflict(student, a.g.filter(Boolean) as Student[], constraints);
-        const bConflict = wouldConflict(student, b.g.filter(Boolean) as Student[], constraints);
-        const conflictScore = (c: "hard" | "soft" | false) => c === "hard" ? 2 : c === "soft" ? 1 : 0;
-        if (conflictScore(aConflict) !== conflictScore(bConflict)) return conflictScore(aConflict) - conflictScore(bConflict);
-
-        const aT = togetherCount(student, a.g, constraints);
-        const bT = togetherCount(student, b.g, constraints);
-        if (aT !== bT) return bT - aT;
-
-        if (student.nearTeacher) {
-          const teacherPos = teacherDeskAtFront ? 0 : totalUnits - 1;
-          const aDist = Math.abs(a.gi - teacherPos);
-          const bDist = Math.abs(b.gi - teacherPos);
-          if (aDist !== bDist) return aDist - bDist;
-        }
-
-        const aB = a.g.filter(Boolean).filter((s) => (s as Student).behavior === "high").length;
-        const bB = b.g.filter(Boolean).filter((s) => (s as Student).behavior === "high").length;
-        if (aB !== bB) return aB - bB;
-        return a.filled - b.filled;
-      });
-
+      const conflictScore = (c: "hard" | "soft" | false) => c === "hard" ? 2 : c === "soft" ? 1 : 0;
+      const cost = (x: typeof choices[number]) => {
+        const members = x.g.filter(Boolean) as Student[];
+        const pos = totalUnits <= 1 ? 0 : x.gi / (totalUnits - 1);
+        let c = conflictScore(wouldConflict(student, members, constraints)) * 1000;
+        c -= togetherCount(student, x.g, constraints) * 50;
+        if (student.nearTeacher) c += Math.abs(pos - (teacherDeskAtFront ? 0 : 1)) * 12;
+        if (!ignoreVisibility) c += Math.abs(pos - (4 - valueScore(student.visibility)) / 3) * 5;
+        if (student.behavior === "high") c += members.filter((m) => m.behavior === "high").length * 8;
+        return c + x.filled * 0.4 + x.noise;
+      };
+      choices.sort((a, b) => cost(a) - cost(b));
       const choice = choices[0];
       const slot = groups[choice.gi].findIndex((s) => s === null);
       if (slot >= 0) groups[choice.gi][slot] = student;
@@ -220,14 +238,40 @@ export function generateArrangements(params: GenParams): Arrangement[] {
 
     const clean = groups.map((g) => g.filter(Boolean) as Student[]);
     const rotations = clean.map((_, gi) => currentRotations[gi] ?? 0);
-    const m = scoreGroups(clean, constraints, lockedIds, teacherDeskAtFront);
-    results.push({ id: crypto.randomUUID(), name: `Option ${String.fromCharCode(65 + i)}`, groups: clean, rotations, ...m });
+    const m = scoreGroups(clean, constraints, lockedIds, teacherDeskAtFront, ignoreVisibility);
+    results.push({ id: crypto.randomUUID(), name: "", groups: clean, rotations, ...m });
   }
 
   results.sort((a, b) => b.score - a.score);
-  return results.slice(0, count);
+  const distinct: Arrangement[] = [];
+  const sigs: Set<string>[] = [];
+  for (const r of results) {
+    const sig = signature(r.groups);
+    if (sigs.every((o) => overlap(sig, o) < 0.6)) { distinct.push(r); sigs.push(sig); }
+  }
+  const pool = distinct.length >= count ? distinct : results;
+  const span = Math.max(count - 1, Math.floor((pool.length - 1) * 0.85));
+  const idx = new Set<number>();
+  for (let k = 0; k < count && k < pool.length; k++) {
+    let j = Math.round((k * span) / Math.max(count - 1, 1));
+    while (idx.has(j) && j < pool.length - 1) j++;
+    idx.add(j);
+  }
+  const picked = [...idx].sort((x, y) => x - y).map((j) => pool[j]).filter(Boolean);
+  const best = picked[0];
+  return picked.map((r, i) => ({ ...r, name: `Option ${String.fromCharCode(65 + i)}`, summary: compareSummary(r, best, i === 0, ignoreVisibility) }));
 }
 
-export function rescoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: Set<string>, teacherDeskAtFront = true) {
-  return scoreGroups(groups, constraints, lockedIds, teacherDeskAtFront);
+function compareSummary(r: Arrangement, best: Arrangement, isBest: boolean, ignoreVisibility: boolean): string {
+  const notes: string[] = [];
+  if (r.hardViolations) notes.push(`${r.hardViolations} must-apart pair together`);
+  if (r.softViolations) notes.push(`${r.softViolations} preference missed`);
+  if (!isBest && r.behavior < best.behavior - 2) notes.push("Energetic kids sit closer together");
+  if (!isBest && !ignoreVisibility && r.visibility < best.visibility - 1) notes.push("Fewer front seats for those who need them");
+  if (isBest) return notes[0] ?? (r.behavior < 82 ? "Best balance — a few energetic kids must share" : "Best balance of every need");
+  return notes.slice(0, 2).join(" · ") || "Same balance, a fresh mix of seats";
+}
+
+export function rescoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: Set<string>, teacherDeskAtFront = true, ignoreVisibility = false) {
+  return scoreGroups(groups, constraints, lockedIds, teacherDeskAtFront, ignoreVisibility);
 }

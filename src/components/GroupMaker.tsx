@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { fetchClasses, fetchStudents, fetchConstraints, type ClassRow, type StudentRow, type ConstraintRow } from "../db";
 import { generateArrangements, type Arrangement, type Student, type Constraint } from "../engine";
-import { VIS_COLORS, BEH_COLORS } from "../lib";
+import { tier } from "./Planner";
+import { BEH_COLORS } from "../lib";
 import { SiteHeader } from "./Tools";
 import type { Page } from "../App";
 
@@ -53,6 +54,7 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
       targetGroupSize: groupSize,
       teacherDeskAtFront: true,
       count: 5,
+      ignoreVisibility: true,
     });
     setArrangements(results);
     if (results.length > 0) setSelectedId(results[0].id);
@@ -66,9 +68,7 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
       <SiteHeader active="tools" onNavigate={onNavigate} />
       <main className="gm-main">
         <section className="gm-intro">
-          <span className="section-kicker">CLASSROOM TOOL</span>
           <h1>Make groups<br />that work together.</h1>
-          <p>Pick a class, choose your group size, and get balanced groupings that respect visibility, behavior, and separation rules.</p>
         </section>
 
         {!selectedClassId ? (
@@ -121,11 +121,8 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
                       className={`gm-candidate ${a.id === selectedId ? "selected" : ""}`}
                       onClick={() => setSelectedId(a.id)}
                     >
-                      <span className="gm-candidate-score">{a.score}</span>
-                      <span className="gm-candidate-name">{a.name}</span>
-                      <span className={`status-chip ${a.hardViolations === 0 ? "green" : "red"}`}>
-                        {a.hardViolations === 0 ? "Clean" : "Review"}
-                      </span>
+                      <span className={`gm-candidate-score candidate-score tier-${tier(a.score)}`}>{a.score}</span>
+                      <span className="gm-candidate-copy"><span className="gm-candidate-name">{a.name}</span><small>{a.summary}</small></span>
                     </button>
                   ))}
                 </div>
@@ -136,6 +133,7 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
                       <h3>{selected.name} — {selected.groups.length} groups</h3>
                       <span className="gm-stat">Score {selected.score}/100</span>
                     </div>
+                    <p className="insight-summary" data-testid="gm-score-summary">{selected.summary}</p>
                     <div className="gm-groups-grid">
                       {selected.groups.map((group, gi) => (
                         <div key={gi} className="gm-group-card">
@@ -145,8 +143,7 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
                               <div key={s.id} className="gm-member">
                                 <span className="gm-member-name">{s.name || "?"}</span>
                                 <div className="seat-badges">
-                                  <span className="badge" style={{ background: VIS_COLORS[s.visibility] + "20", color: VIS_COLORS[s.visibility] }} title={`Visibility: ${s.visibility}`}>V</span>
-                                  <span className="badge" style={{ background: BEH_COLORS[s.behavior] + "20", color: BEH_COLORS[s.behavior] }} title={`Behavior: ${s.behavior}`}>B</span>
+                                  <span className="badge" style={{ background: BEH_COLORS[s.behavior] + "20", color: BEH_COLORS[s.behavior] }} title={`Behaviour: ${s.behavior}`}>{s.behavior === "low" ? "Calm" : s.behavior === "high" ? "Energetic" : "Steady"}</span>
                                 </div>
                               </div>
                             ))}

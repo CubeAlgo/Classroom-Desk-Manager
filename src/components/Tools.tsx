@@ -2,42 +2,34 @@ import { useState, useEffect } from "react";
 import { musicController } from "../music";
 import type { Page } from "../App";
 
-const PREVIEW_TABLES = [
-  { x: 8, y: 34, seats: ["S1", "S2", "S3", "S4"], tone: ["g", "", "a", ""] },
-  { x: 38, y: 34, seats: ["S5", "S6", "S7", "S8"], tone: ["", "g", "", ""] },
-  { x: 68, y: 34, seats: ["S9", "S10", "S11", "S12"], tone: ["", "", "g", "a"] },
-  { x: 23, y: 68, seats: ["S13", "S14", "S15", "S16"], tone: ["a", "", "", "g"] },
-  { x: 53, y: 68, seats: ["S17", "S18", "S19", "S20"], tone: ["", "", "", ""] },
+const KIDS = ["Mia", "Leo", "Ava", "Sam", "Zoe", "Max", "Ivy", "Ben", "Ella", "Kai", "Lily", "Noah", "Ruby", "Eli", "Nora", "Finn"];
+const COLORS = ["coral", "sun", "mint", "sky", "grape"];
+const TABLES = [
+  { x: 6, y: 36 }, { x: 37, y: 36 }, { x: 68, y: 36 }, { x: 21, y: 68 }, { x: 53, y: 68 },
 ];
 
 function HeroPreview() {
   return (
     <div className="hero-preview" aria-hidden="true">
       <div className="hp-window">
-        <div className="hp-bar"><i /><i /><i /><span>Period 3 — Algebra II</span></div>
+        <div className="hp-bar"><i /><i /><i /><span>Room 12 · Ms. Rivera's 2nd Grade</span></div>
         <div className="hp-room">
           <div className="hp-board">WHITEBOARD</div>
           <div className="hp-teacher">Teacher</div>
-          {PREVIEW_TABLES.map((t, i) => (
+          {TABLES.map((t, i) => (
             <div key={i} className="hp-table" style={{ left: `${t.x}%`, top: `${t.y}%`, animationDelay: `${0.15 + i * 0.08}s` }}>
-              <div className="hp-seats">{t.seats.slice(0, 2).map((s, j) => <b key={s} className={t.tone[j]}>{s}</b>)}</div>
-              <div className="hp-surface" />
-              <div className="hp-seats">{t.seats.slice(2).map((s, j) => <b key={s} className={t.tone[j + 2]}>{s}</b>)}</div>
+              <div className="hp-seats">{[0, 1].map((j) => <b key={j} className={COLORS[(i + j) % 5]}>{KIDS[(i * 3 + j) % KIDS.length]}</b>)}</div>
+              <div className={`hp-surface ${COLORS[(i + 2) % 5]}`} />
+              <div className="hp-seats">{[2, 3].map((j) => <b key={j} className={COLORS[(i + j) % 5]}>{KIDS[(i * 3 + j) % KIDS.length]}</b>)}</div>
             </div>
           ))}
+          <span className="hp-sticker star">★</span>
+          <span className="hp-sticker apple" />
         </div>
       </div>
-      <div className="hp-float hp-score"><strong>94</strong><span>Arrangement score<small>All separation rules met</small></span></div>
-      <div className="hp-float hp-rule"><i /> Keep apart · S3 &amp; S11</div>
     </div>
   );
 }
-
-const STEPS = [
-  ["01", "Add your roster", "Type names or paste a whole list. Every student gets a clear S-number."],
-  ["02", "Set what matters", "Visibility, behaviour, near the teacher, who to keep apart or together."],
-  ["03", "Pick a plan", "Compare five scored arrangements, then drag, lock and fine-tune."],
-];
 
 export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: string) => void }) {
   return (
@@ -48,42 +40,19 @@ export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: strin
           <div className="home-hero-copy">
             <span className="home-pill"><i /> Classroom tools for teachers</span>
             <h1>Seating plans that think the way <em>you</em> do.</h1>
-            <p>Build a roster, note the needs that matter, and get thoughtful seating arrangements in seconds. No student accounts, no setup overhead.</p>
+            <p>Happy tables, calm classrooms. Seating plans in seconds.</p>
             <div className="home-cta">
               <button className="text-button filled big" data-testid="home-open-planner-btn" onClick={() => onNavigate("hub")}>Open Desk Planner <span>→</span></button>
               <button className="text-button outlined big" data-testid="home-open-groupmaker-btn" onClick={() => onNavigate("groupmaker")}>Try Group Maker</button>
             </div>
-            <dl className="home-stats">
-              <div><dt>5</dt><dd>scored options per class</dd></div>
-              <div><dt>6</dt><dd>per-student preferences</dd></div>
-              <div><dt>0</dt><dd>accounts needed</dd></div>
-            </dl>
           </div>
           <HeroPreview />
         </section>
 
-        <section className="home-steps">
-          {STEPS.map(([n, title, copy]) => (
-            <article key={n}><span>{n}</span><h3>{title}</h3><p>{copy}</p></article>
-          ))}
-        </section>
-
-        <section className="home-tools">
-          <div className="home-section-head"><span className="section-kicker">THE TOOLKIT</span><h2>Two tools, one calm classroom.</h2></div>
-          <div className="home-tool-grid">
-            <article className="home-tool primary" onClick={() => onNavigate("hub")} data-testid="home-tool-desk-planner">
-              <span className="home-tool-index">01</span>
-              <h3>Desk Planner</h3>
-              <p>Pairs or group tables, a movable teacher's desk, and rules for every student. Explore five seating possibilities for each class.</p>
-              <span className="home-tool-link">Open planner →</span>
-            </article>
-            <article className="home-tool" onClick={() => onNavigate("groupmaker")} data-testid="home-tool-group-maker">
-              <span className="home-tool-index">02</span>
-              <h3>Group Maker</h3>
-              <p>Balance academic and collaboration skills to create fair, effective working groups.</p>
-              <span className="home-tool-link">Open Group Maker →</span>
-            </article>
-          </div>
+        <section className="home-quote" data-testid="home-testimonial">
+          <span className="quote-mark">“</span>
+          <blockquote>Keeps my seating organized — and saves me from inventing a new arrangement every time.</blockquote>
+          <cite><i>MR</i><span><b>Ms. Rivera</b><small>2nd grade teacher</small></span></cite>
         </section>
         <p className="local-note">Your classes and room plans stay in this browser, on this device.</p>
       </main>
@@ -114,7 +83,7 @@ export function MusicToggle() {
 
 export function SiteHeader({ active, onNavigate }: { active: "tools" | "classes"; onNavigate: (page: Page, classId?: string) => void }) {
   return <header className="site-header">
-    <button className="brand-lockup" data-testid="brand-home-btn" onClick={() => onNavigate("tools")}><span className="brand-mark">d.</span><span>Desk planner<small>A THOUGHTFUL SEAT FOR EVERYONE</small></span></button>
+    <button className="brand-lockup" data-testid="brand-home-btn" onClick={() => onNavigate("tools")}><span className="brand-mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="9" width="18" height="6" rx="2" fill="#f7f4ec" /><circle cx="7.5" cy="5" r="2.2" fill="#f2b632" /><circle cx="16.5" cy="5" r="2.2" fill="#f2785c" /><circle cx="7.5" cy="19" r="2.2" fill="#4a9be8" /><circle cx="16.5" cy="19" r="2.2" fill="#3fb68b" /></svg></span><span className="brand-name">Desk Planner</span></button>
     <nav className="site-nav"><button data-testid="nav-tools-btn" className={active === "tools" ? "active" : ""} onClick={() => onNavigate("tools")}><span>▦</span> Tools</button><button data-testid="nav-classes-btn" className={active === "classes" ? "active" : ""} onClick={() => onNavigate("hub")}><span>♧</span> My classes</button></nav>
     <div className="header-right">
       <MusicToggle />
