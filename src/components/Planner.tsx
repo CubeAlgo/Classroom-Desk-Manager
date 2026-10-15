@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { fetchStudents, fetchConstraints, type ConstraintRow, type ClassRow, type StudentRow, updateClass } from "../db";
-import { fromRow, generateArrangements, rescoreGroups, type Student, type Constraint, type Arrangement, type LayoutType } from "../engine";
+import { fromRow, generateArrangements, rescoreGroups, getCapacities, type Student, type Constraint, type Arrangement, type LayoutType } from "../engine";
 import { VIS_COLORS, BEH_COLORS } from "../lib";
 import type { Page } from "../App";
 import { SiteHeader } from "./Tools";
@@ -123,6 +123,7 @@ export function Planner({
       currentRotations: rotationsRef.current,
       teacherDeskAtFront,
       seed: seedRef.current++,
+      cols: gridCols(getCapacities(s.length, layout).length),
     });
     const rotated = results.map(withRotations);
     setArrangements(rotated);
@@ -176,7 +177,7 @@ export function Planner({
     }
     setCurrentGroups(newGroups);
     const ec = toEngineConstraints(constraintsRef.current);
-    const m = rescoreGroups(newGroups, ec, lockedIds, teacherDeskAtFront);
+    const m = rescoreGroups(newGroups, ec, lockedIds, teacherDeskAtFront, false, gridCols(newGroups.length));
     setArrangements((prev) => prev.map((a) => a.id === selectedId ? { ...a, groups: newGroups, ...m } : a));
   };
 
@@ -241,7 +242,7 @@ export function Planner({
       const smallest = groups.reduce((a, g) => (g.length < a.length ? g : a), groups[0]);
       smallest.push(fromRow(st));
     });
-    const m = rescoreGroups(groups, toEngineConstraints(constraints), lockedIds, teacherDeskAtFront);
+    const m = rescoreGroups(groups, toEngineConstraints(constraints), lockedIds, teacherDeskAtFront, false, gridCols(groups.length));
     const arr: Arrangement = { id: p.id, name: p.name, groups, rotations: p.rotations, ...m };
     setArrangements((prev) => [arr, ...prev.filter((a) => a.id !== p.id)]);
     setSelectedId(p.id);
@@ -255,7 +256,7 @@ export function Planner({
   const handleDeletePlan = (id: string) => { deletePlan(id); setPlans((prev) => prev.filter((p) => p.id !== id)); };
 
   const ec = toEngineConstraints(constraints);
-  const insight = selected ? rescoreGroups(currentGroups, ec, lockedIds, teacherDeskAtFront) : null;
+  const insight = selected ? rescoreGroups(currentGroups, ec, lockedIds, teacherDeskAtFront, false, gridCols(currentGroups.length)) : null;
 
   if (loading) {
     return <div className="site-shell"><SiteHeader active="classes" onNavigate={onNavigate} /><div className="loading-text" style={{ padding: "80px 32px" }}>Loading planner…</div></div>;
@@ -579,7 +580,7 @@ function DraggableTableGroup({
         title={isLocked ? "Locked — click to unlock" : "Click to lock · Drag to move"}
         style={seatDragOver === si ? { outline: "2px dashed #3a8c5c", outlineOffset: "2px" } : undefined}
       >
-        <div className="seat-inner">
+        <div className="seat-inner" style={rotation ? { transform: `rotate(${-rotation}deg)` } : undefined}>
           <span className="seat-name" title={student.name}>{student.avatar && <KidAvatar avatar={student.avatar} fallback="" size={18} className="seat-avatar" />}{shortName(student.name)}</span>
           <div className="seat-badges">
             <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
@@ -598,6 +599,7 @@ function DraggableTableGroup({
 
   return (
     <div
+      data-testid={`table-group-${groupIndex}`}
       className={`table-group ${isDraggingDesk ? "dragging-desk" : ""}`}
       style={{ position: "absolute", left: `${position.x}%`, top: `${position.y}%`, transform: `rotate(${rotation}deg)` }}
       onPointerDown={onDeskDragStart}
@@ -607,10 +609,10 @@ function DraggableTableGroup({
       <div className="table-group-header">
         <span className="unit-label">{label}</span>
         <div className="rotate-controls" onClick={(e) => e.stopPropagation()}>
-          <button className="rotate-btn" onPointerDown={(e) => e.stopPropagation()} onClick={() => onRotate(groupIndex, -15)}>↺</button>
+          <button className="rotate-btn" onPointerDown={(e) => e.stopPropagation()} data-testid={`rotate-ccw-${groupIndex}`} onClick={() => onRotate(groupIndex, -15)}>↺</button>
           <div className="rotate-handle" onPointerDown={onRotateStart} onPointerMove={onRotateMove} onPointerUp={onRotateEnd}>⟳</div>
-          <button className="rotate-btn" onPointerDown={(e) => e.stopPropagation()} onClick={() => onRotate(groupIndex, 15)}>↻</button>
-          <button className="rotate-btn" onPointerDown={(e) => e.stopPropagation()} onClick={() => onRotate(groupIndex, -rotation)}>⤾</button>
+          <button className="rotate-btn" onPointerDown={(e) => e.stopPropagation()} data-testid={`rotate-cw-${groupIndex}`} onClick={() => onRotate(groupIndex, 15)}>↻</button>
+          <button className="rotate-btn" onPointerDown={(e) => e.stopPropagation()} data-testid={`rotate-reset-${groupIndex}`} onClick={() => onRotate(groupIndex, -rotation)}>⤾</button>
         </div>
       </div>
 

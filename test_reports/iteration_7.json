@@ -1,0 +1,27 @@
+{
+  "summary": "Frontend-only test of map v6 (badges, spacing, vertical group tables, tilt). Made 25-student classes for all 5 layouts at 1920x900 and 1366x768 (10 maps): no .table-group bounding boxes overlap, none fall outside #classroom-canvas, every seat (25/25) has V, B and H badges, no seat name is cut off. In 3s/4s/5s every .group-surface.vertical is taller than wide, seats are split left/right (2/1, 2/2, 3/2), and the leftmost/rightmost columns are rotated 14/-14deg with middle columns at 0 (5 cols at 1920, 3 cols at 1366). Singles and pairs are all at 0deg. Rotate controls stay hidden (opacity 0) until hover, then show (opacity 1); +15/-15 buttons work. Regression checks passed: dragging a seat to another table swaps the two students, table drag via pointer works, Save room layout then reopening the class restores the same positions and rotations, Regenerate keeps the saved layout, the Desk Front/Back toggle moves the teacher desk to top 88% with no overlap.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Classroom map (3s/4s/5s)", "issues": ["Seat names on the tilted side tables tilt 14deg with the table. They are readable but not strictly upright. If truly upright text is wanted, counter-rotate .seat-inner by -rotation.", "The vertical 'GROUP n' label on the table surface reads bottom-to-top and is very faint (low contrast). It is decoration only."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional: counter-rotate seat contents so names stay perfectly level on tilted tables",
+    "Optional: add data-testid/aria-label to the rotate buttons (.rotate-btn, .rotate-handle) and to .table-group (e.g. table-group-{i}, rotate-cw-{i})"
+  ],
+  "critical_code_review_comments": [
+    "Planner.tsx is about 636 lines, close to the 700-line limit; consider moving DraggableTableGroup into its own file",
+    "The H badge uses VIS_COLORS[student.hearing] and is wrapped in a redundant {} expression; fine if hearing levels match the visibility keys",
+    "defaultRotation uses gi % cols, so a partial last row (for example group 6 at 1920) gets rotation from its column, which is correct. The default rotation is fixed when the map is generated and is not recalculated when the viewport resizes."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "seed_data_creation": "Created TEST_{layout}_{1920|1366}, TEST_regress_groups and TEST_regress2 classes in localStorage of the test browser",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reloading the page lands on home (no URL routing). To reopen a class: home-open-planner-btn -> find class-row-{i} by text -> class-arrange-btn-{i}. Rotate buttons: .table-group .rotate-btn nth(0)=-15, nth(1)=+15, nth(2)=reset; hover .unit-label first. Overlap check uses getBoundingClientRect of .table-group."
+}
