@@ -36,3 +36,8 @@ Existing Vite + React + TS classroom Desk Planner (from Bolt, Supabase backend).
 - Layouts: 1s, Pairs, 3s, 4s, 5s
 - Group Maker drag between groups; multi-select copy/paste students between classes (Ctrl/Cmd+C/V)
 - Regenerate gives fresh options; uneven group size penalty
+
+## Iteration 6-7 (Oct 2026)
+- Map: V/B/H badges always; roomier auto layout (column count from footprint), vertical group tables w/ seats left/right, side columns tilted 10deg
+- Fixed 1200px to-scale room in RoomViewport (auto-fit scale + Full screen with Regenerate)
+- Engine: depth by grid row (cols param), uneven-size fix

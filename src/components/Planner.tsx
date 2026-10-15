@@ -86,7 +86,7 @@ export function Planner({
   const canvasWidth = () => ROOM_W;
   const gridCols = (count: number) => Math.max(1, Math.min(count, Math.floor((canvasWidth() - 40 + GAP_X) / (foot.w + GAP_X))));
   const topPx = teacherDeskAtFront ? 96 : 36;
-  const canvasHeight = (count: number) => Math.max(680, topPx + Math.ceil(count / gridCols(count)) * (foot.h + GAP_Y) + (teacherDeskAtFront ? 40 : 110));
+  const canvasHeight = (count: number) => Math.max(560, topPx + Math.ceil(count / gridCols(count)) * (foot.h + GAP_Y) + (teacherDeskAtFront ? 40 : 110));
 
   const buildInitialPositions = (count: number): DeskPosition[] => {
     const W = canvasWidth();

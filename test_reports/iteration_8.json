@@ -1,0 +1,20 @@
+{
+  "summary": "Frontend-only test of the v7 to-scale room viewport. At 1366x768, 1280x720 and 1920x1080 I made classes with 28 students in fours, 25 in fives and 25 singles (9 maps). On every map, all .table-group boxes sit inside #classroom-canvas and inside the room viewport, nothing spills past the window (scrollWidth equals innerWidth), no two tables overlap, and all seats (28/25/25) show V, B and H badges. The room-scale label shows 82% at 1366, 74% at 1280 and 115% at 1920 (capped at 1.15). In fours, the side columns tilt 10 and -10 degrees and the middle columns are 0. Full screen works: document.fullscreenElement is set, the scale changes to 88%, room-regenerate-btn appears and the button reads 'Exit full screen'. Exit clears full screen and the scale goes back to 82%. Dragging under 82% scale works: a table and the teacher desk both move exactly with the mouse (60,40 and -80,30 px). Dragging a seat onto another table swaps the two students. Save room layout, then a page reload and reopening the class, restores identical positions.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Room viewport", "issues": ["At 1920 the room hits the 1.15 scale cap and sits left-aligned, leaving about 76px of empty space on the right of the column. Optional: center .room-stage.", "In full screen the scale is limited by height (88% at 1366x768). With few rows, the bottom third of the canvas is empty because of the 680px minimum canvas height. Optional."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": ["Optional: center .room-stage when scale is capped", "Optional: shrink the minimum canvas height so full screen can scale up more"],
+  "critical_code_review_comments": ["RoomViewport toggle: if requestFullscreen is undefined (for example iOS Safari), the optional chaining returns undefined and the .catch call is skipped safely, but the button gives the user no feedback"],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "seed_data_creation": "Created TEST8_* classes in localStorage of the test browser",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Headless Chromium allows the Fullscreen API. The table drag handle is the .unit-label inside table-group-{i}. Seat ids are seat-{group}-{seat}."
+}
