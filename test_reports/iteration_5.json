@@ -1,0 +1,41 @@
+{
+  "summary": "Iteration 5 frontend-only verification of new Desk Planner features (testimonials, 5 layouts, hearing/ESL/avatar, multi-select copy/paste, saved plans, saved room layout, Group Maker drag) plus regressions. All requested flows PASS, no page errors. 3 minor behavioural observations reported.",
+  "tested_scope": ["frontend"],
+  "passed": [
+    "Home testimonials: dot-0/1/2 switch text; initials S/C/H with Ms. Schnell (ESL Teacher), Ms. Creighton (Grade 7/8 Teacher), Ms. Hardimen (Grade 8 Music Teacher)",
+    "new-class-layout-singles/pairs/threes/fours/groups present; setup layout-{id}-btn present; with 10 students planner table sizes: singles [1x10], pairs [2x5], threes [3,3,2,2], fours [4,3,3], fives [5,5]",
+    "Student drawer: hearing-low selected, esl-switch checked, avatar-color-mint + avatar-animal-cat; all 6 colours present; roster card shows mint avatar with SVG + 'Hearing' and 'ESL' tags; planner seat shows avatar + V,B,H,ESL badges; hearing-medium student shows H badge",
+    "Multi-select: student-select ticks -> select-bar '2 selected' with copy/remove/clear; Ctrl+C -> select-notice 'Copied 2 students...'; in class B (with existing 'Ann Lee') Ctrl+V -> 'Pasted 1 student · 1 already here'; paste-students-btn again -> 'Pasted 0 students · 2 already here'; remove-selected-btn removed 2 selected",
+    "Saved plans: plan-name-input + Enter/save-plan-btn creates saved-plan-0 'Week 1' (planner-notice); switching to Option C then load-plan-btn-0 restores exact arrangement, selected card shows 'Week 1' + SAVED chip; delete-plan-btn-0 removes",
+    "Room layout: PointerEvent drag on table header moved table (3%,14% -> 22.58%,32.04%); planner-save-layout-btn notice; regenerate keeps position; page reload + class-arrange-btn-0 -> same position",
+    "Group Maker: drag gm-member-0-0 onto gm-group-1 moves student (3/3 -> 2/4), summary re-computed",
+    "Regression: desk toggle front<->back, cross-table seat drag swap, music mute toggle"
+  ],
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Planner Regenerate", "issue": "With students that have no traits, clicking Regenerate 3x returned the identical Option A seating each time (only Options B-E differ). Users may perceive Regenerate as doing nothing.", "affected_selectors": ["[data-testid='planner-regenerate-btn']"]},
+      {"flow": "Planner desk toggle vs saved room layout", "issue": "planner-desk-toggle-btn calls setDeskPositions([]) so a saved/dragged room layout is discarded in-session (tables snap back to grid) though localStorage layout remains and reapplies on next mount - inconsistent.", "affected_selectors": ["[data-testid='planner-desk-toggle-btn']"]},
+      {"flow": "Group Maker drag rescoring", "issue": "After moving a member making groups 2/4/2 (target size 3), score stayed 100/100; group size imbalance not penalised. Also emptying a group leaves an empty group card rendered (groups not filtered for display).", "affected_selectors": ["[data-testid^='gm-group-']", ".gm-stat"]}
+    ],
+    "design_issues": []
+  },
+  "critical_code_review_comments": [
+    "Planner.tsx is 610 lines - consider splitting DraggableTableGroup/TeacherDesk/KeyPanel into separate files",
+    "Setup.tsx global keydown: Ctrl+A/Ctrl+C are hijacked whenever focus is outside inputs, overriding native text select/copy on the page",
+    "Planner savedLayout is read once via useState initialiser; fine on remount but layout desks count may mismatch if student count/layout changes (extra groups fall back to grid - OK)"
+  ],
+  "test_report_links": [],
+  "action_items": [
+    "Optional: make Regenerate shuffle/rotate Option A when scores tie so the user sees a change",
+    "Optional: keep saved room layout when toggling teacher desk front/back (or re-read getRoomLayout)",
+    "Optional: penalise group size imbalance in Group Maker rescoring and drop empty groups after drag"
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100% of requested checks"},
+  "seed_data_creation": "none (fresh browser per script)",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Navigate to planner after reload via home-open-planner-btn -> class-arrange-btn-0. Table drag works by dispatching PointerEvents on .table-group .unit-label. Seat and Group Maker drags work with page.drag_and_drop (HTML5 DnD)."
+}

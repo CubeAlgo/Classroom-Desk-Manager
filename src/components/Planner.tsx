@@ -38,6 +38,7 @@ export function Planner({
   // Teacher desk X position (0-100 percent). Y is determined by front/back setting.
   const [teacherDeskX, setTeacherDeskX] = useState(savedLayout?.teacher.x ?? 35);
 
+  const seedRef = useRef(0);
   const studentsRef = useRef(students);
   const constraintsRef = useRef(constraints);
   const lockedRef = useRef(lockedIds);
@@ -99,6 +100,7 @@ export function Planner({
       currentGroups: groupsRef.current,
       currentRotations: rotationsRef.current,
       teacherDeskAtFront,
+      seed: seedRef.current++,
     });
     setArrangements(results);
     if (results.length > 0) {
@@ -189,7 +191,7 @@ export function Planner({
     if (prevFront.current === teacherDeskAtFront) return;
     prevFront.current = teacherDeskAtFront;
     setTeacherDeskY(teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y);
-    setDeskPositions([]);
+    setDeskPositions(getRoomLayout(classId)?.desks ?? []);
     doGenerate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teacherDeskAtFront]);

@@ -142,12 +142,14 @@ function scoreGroups(groups: Student[][], constraints: Constraint[], lockedIds: 
   });
   const n = Math.max(groups.reduce((a, g) => a + g.length, 0), 1);
   vis /= n;
-  const beh = Math.max(0, 100 - excess * 9 - nearMiss * 6);
+  const sizes = groups.map((g) => g.length);
+  const uneven = Math.max(0, Math.max(...sizes, 0) - Math.min(...sizes, 0) - 1);
+  const beh = Math.max(0, 100 - excess * 9 - nearMiss * 6 - uneven * 6);
   const p = penalty(groups, constraints);
   const rules = (p.hardViolations === 0 ? 15 : Math.max(0, 15 - p.hardViolations * 7)) + Math.max(0, 5 - p.softViolations * 2);
   const score = Math.max(0, Math.round(ignoreVisibility ? beh * 0.8 + rules : vis * 0.45 + beh * 0.35 + rules));
   const m = { score, visibility: Math.round(vis), behavior: Math.round(beh), hardViolations: p.hardViolations, softViolations: p.softViolations, lockedCount: locked };
-  return { ...m, summary: explain(m, ignoreVisibility) };
+  return { ...m, summary: uneven ? "Uneven group sizes" : explain(m, ignoreVisibility) };
 }
 
 export function explain(m: { visibility: number; behavior: number; hardViolations: number; softViolations: number }, ignoreVisibility = false): string {
@@ -206,10 +208,11 @@ export interface GenParams {
   targetGroupSize?: number;
   teacherDeskAtFront?: boolean;
   ignoreVisibility?: boolean;
+  seed?: number;
 }
 
 export function generateArrangements(params: GenParams): Arrangement[] {
-  const { students, constraints, layout, lockedIds, currentGroups, currentRotations, count = 5, targetGroupSize, teacherDeskAtFront = true, ignoreVisibility = false } = params;
+  const { students, constraints, layout, lockedIds, currentGroups, currentRotations, count = 5, targetGroupSize, teacherDeskAtFront = true, ignoreVisibility = false, seed = 0 } = params;
   if (students.length === 0) return [];
 
   const capacities = getCapacities(students.length, layout, targetGroupSize);
@@ -223,8 +226,8 @@ export function generateArrangements(params: GenParams): Arrangement[] {
 
   const ATTEMPTS = 48;
   for (let i = 0; i < ATTEMPTS; i++) {
-    const rng = seeded(41 + i * 977 + students.length * 3);
-    const jitter = i === 0 ? 0 : 1.5 + (i % 8) * 1.2;
+    const rng = seeded(41 + i * 977 + students.length * 3 + seed * 7919);
+    const jitter = i === 0 && !seed ? 0 : (i === 0 ? 0.8 : 1.5 + (i % 8) * 1.2);
     const groups: (Student | null)[][] = Array.from({ length: totalUnits }, (_, gi) => Array(capacities[gi]).fill(null));
 
     for (const s of students) {

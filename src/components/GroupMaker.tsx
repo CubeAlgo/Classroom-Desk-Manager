@@ -72,8 +72,9 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
       const [m] = groups[drag.g].splice(drag.i, 1);
       groups[toG].push(m);
     }
-    const metrics = rescoreGroups(groups.filter((g) => g.length), toEngineConstraints(constraints), new Set(), true, true);
-    setArrangements((prev) => prev.map((a) => a.id === selected.id ? { ...a, groups, ...metrics } : a));
+    const kept = groups.filter((g) => g.length);
+    const metrics = rescoreGroups(kept, toEngineConstraints(constraints), new Set(), true, true);
+    setArrangements((prev) => prev.map((a) => a.id === selected.id ? { ...a, groups: kept, ...metrics } : a));
     setDrag(null);
   };
   const selectedClass = classes.find((c) => c.id === selectedClassId) || null;
