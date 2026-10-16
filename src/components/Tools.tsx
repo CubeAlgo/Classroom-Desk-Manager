@@ -68,7 +68,7 @@ export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: strin
         <section className="home-hero">
           <div className="home-hero-copy">
             <span className="home-pill"><i /> Classroom tools for teachers</span>
-            <h1>Seating plans that think the way <em>you</em> do.</h1>
+            <h1 data-testid="home-headline">Your class. <em>Perfectly</em> seated.</h1>
             <p>Happy tables, calm classrooms. Seating plans in seconds.</p>
             <div className="home-cta">
               <button className="text-button filled big" data-testid="home-open-planner-btn" onClick={() => onNavigate("hub")}>Open Desk Planner <span>→</span></button>
