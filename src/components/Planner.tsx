@@ -7,7 +7,7 @@ import { SiteHeader } from "./Tools";
 import { parseAvatar } from "./KidAvatar";
 import { RoomViewport } from "./RoomViewport";
 import { layoutSize } from "../lib";
-import { getRoomLayout, saveRoomLayout, listPlans, savePlan, deletePlan, type SavedPlan } from "../plans";
+import { getRoomLayout, saveRoomLayout, listPlans, savePlan, deletePlan, updatePlan, type SavedPlan } from "../plans";
 
 interface DeskPosition { x: number; y: number; }
 
@@ -43,6 +43,7 @@ export function Planner({
   const [currentRotations, setCurrentRotations] = useState<number[]>(savedLayout?.rotations ?? []);
   const [plans, setPlans] = useState<SavedPlan[]>(() => listPlans(classId));
   const [planName, setPlanName] = useState("");
+  const [planNotes, setPlanNotes] = useState("");
   const [notice, setNotice] = useState("");
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
   // Teacher desk X position (0-100 percent). Y is determined by front/back setting.
@@ -237,10 +238,11 @@ export function Planner({
 
   const handleSavePlan = () => {
     const name = planName.trim() || `Plan ${plans.length + 1}`;
-    const plan = savePlan({ classId, name, groups: currentGroups.map((g) => g.map((st) => st.id)), rotations: currentRotations, layout: currentLayout() });
+    const plan = savePlan({ classId, name, notes: planNotes.trim(), groups: currentGroups.map((g) => g.map((st) => st.id)), rotations: currentRotations, layout: currentLayout() });
     saveRoomLayout(classId, plan.layout);
     setPlans((prev) => [plan, ...prev]);
     setPlanName("");
+    setPlanNotes("");
     flash(`Saved "${name}"`);
   };
 
@@ -261,6 +263,11 @@ export function Planner({
     setDeskPositions(p.layout.desks);
     setTeacherDeskX(p.layout.teacher.x);
     setTeacherDeskY(p.layout.teacher.y);
+  };
+
+  const handleUpdatePlanNotes = (id: string, notes: string) => {
+    updatePlan(id, { notes });
+    setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, notes } : p)));
   };
 
   const handleDeletePlan = (id: string) => { deletePlan(id); setPlans((prev) => prev.filter((p) => p.id !== id)); };
@@ -332,37 +339,28 @@ export function Planner({
             <KeyPanel locked={currentGroups.flat().filter((st) => lockedIds.has(st.id))} conflicts={conflictPairs(currentGroups, ec)} />
             <section className="right-panel plans-panel" data-testid="saved-plans-panel">
               <div className="right-panel-head"><h3>Saved plans</h3><span className="count-pill">{plans.length}</span></div>
-              <div className="plan-save-row">
+              <div className="plan-save-form">
                 <input className="text-input" data-testid="plan-name-input" value={planName} onChange={(e) => setPlanName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSavePlan()} placeholder="Name this plan, e.g. Week 3" />
-                <button className="text-button filled" data-testid="save-plan-btn" onClick={handleSavePlan} disabled={!currentGroups.length}>Save</button>
+                  placeholder="Name this plan, e.g. Week 3" />
+                <textarea className="text-input" data-testid="plan-notes-input" rows={2} value={planNotes} onChange={(e) => setPlanNotes(e.target.value)}
+                  placeholder="Comments (optional) — e.g. for the sub, Ford needs a quiet start" />
+                <button className="text-button filled" data-testid="save-plan-btn" onClick={handleSavePlan} disabled={!currentGroups.length}>Save plan</button>
               </div>
-              {plans.map((p, i) => (
-                <div key={p.id} className="plan-row" data-testid={`saved-plan-${i}`}>
-                  <button className="plan-open" data-testid={`load-plan-btn-${i}`} onClick={() => handleLoadPlan(p)}>
-                    <b>{p.name}</b><small>{new Date(p.createdAt).toLocaleDateString()}</small>
-                  </button>
-                  <button className="delete-inline" data-testid={`delete-plan-btn-${i}`} onClick={() => handleDeletePlan(p.id)} aria-label="Delete plan">×</button>
-                </div>
-              ))}
-            </section>
-            <section data-testid="planner-insight-panel" className="right-panel">
-              <div className="right-panel-head">
-                <h3>Why this score?</h3>
-              </div>
-              {insight ? (
-                <>
-                  <div className={`insight-score-display tier-text-${tier(insight.score)}`}>{insight.score}<small>/100</small></div>
-                  <p className="insight-summary" data-testid="planner-insight-summary">{selected?.summary}</p>
-                  <div className="insight-meters">
-                    <Meter label="Front-seat needs" value={insight.visibility} />
-                    <Meter label="Calm tables" value={insight.behavior} />
+              {plans.length === 0 && <p className="muted-text">No saved plans yet.</p>}
+              <div className="plan-list">
+                {plans.map((p, i) => (
+                  <div key={p.id} className="plan-row" data-testid={`saved-plan-${i}`}>
+                    <div className="plan-row-head">
+                      <button className="plan-open" data-testid={`load-plan-btn-${i}`} onClick={() => handleLoadPlan(p)}>
+                        <b>{p.name}</b><small>{new Date(p.createdAt).toLocaleDateString()} · Open</small>
+                      </button>
+                      <button className="delete-inline" data-testid={`delete-plan-btn-${i}`} onClick={() => handleDeletePlan(p.id)} aria-label="Delete plan">×</button>
+                    </div>
+                    <textarea className="plan-notes" data-testid={`plan-notes-${i}`} rows={2} value={p.notes ?? ""} placeholder="Add a comment…"
+                      onChange={(e) => handleUpdatePlanNotes(p.id, e.target.value)} />
                   </div>
-                  <p className="insight-note">Click a seat to lock it · drag the teacher's desk anywhere</p>
-                </>
-              ) : (
-                <p className="muted-text">Select a candidate above to see what was prioritized.</p>
-              )}
+                ))}
+              </div>
             </section>
           </div>
         </div>
@@ -388,6 +386,24 @@ export function Planner({
                   </div>
                 ))}
               </div>
+            )}
+          </section>
+          <section data-testid="planner-insight-panel" className="right-panel">
+            <div className="right-panel-head">
+              <h3>Why this score?</h3>
+            </div>
+            {insight ? (
+              <>
+                <div className={`insight-score-display tier-text-${tier(insight.score)}`}>{insight.score}<small>/100</small></div>
+                <p className="insight-summary" data-testid="planner-insight-summary">{selected?.summary}</p>
+                <div className="insight-meters">
+                  <Meter label="Front-seat needs" value={insight.visibility} />
+                  <Meter label="Calm tables" value={insight.behavior} />
+                </div>
+                <p className="insight-note">Click a seat to lock it · drag the teacher's desk anywhere</p>
+              </>
+            ) : (
+              <p className="muted-text">Select a candidate above to see what was prioritized.</p>
             )}
           </section>
 

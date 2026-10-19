@@ -5,6 +5,7 @@ export interface SavedPlan {
   id: string;
   classId: string;
   name: string;
+  notes?: string;
   groups: string[][];
   rotations: number[];
   layout: RoomLayout;
@@ -39,4 +40,8 @@ export function savePlan(plan: Omit<SavedPlan, "id" | "createdAt">): SavedPlan {
 
 export function deletePlan(id: string) {
   localStorage.setItem(PLANS, JSON.stringify(read<SavedPlan[]>(PLANS, []).filter((p) => p.id !== id)));
+}
+
+export function updatePlan(id: string, patch: Partial<Pick<SavedPlan, "name" | "notes">>) {
+  localStorage.setItem(PLANS, JSON.stringify(read<SavedPlan[]>(PLANS, []).map((p) => (p.id === id ? { ...p, ...patch } : p))));
 }

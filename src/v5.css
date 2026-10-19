@@ -143,3 +143,25 @@ kbd { font: 700 10px "Inter", sans-serif; padding: 2px 5px; border-radius: 5px; 
 .planner-info-row > .right-panel { margin: 0; height: 100%; display: flex; flex-direction: column; }
 .planner-info-row .insight-note { margin-top: auto; }
 @media (max-width: 1100px) { .planner-info-row { grid-template-columns: 1fr; } }
+
+/* ── v11: 2-col info row, plan comments, zoom ──────────────── */
+.planner-info-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); }
+.plan-save-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 12px; }
+.plan-save-form textarea { grid-column: 1 / 2; resize: vertical; font-size: 12px; }
+.plan-save-form .text-input { padding: 9px 11px; font-size: 13px; }
+.plan-save-form .text-button { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; }
+.plan-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; max-height: 320px; overflow-y: auto; }
+.plan-row { flex-direction: column; align-items: stretch; margin: 0; padding: 4px 4px 8px; }
+.plan-row-head { display: flex; align-items: center; }
+.plan-open small { color: var(--p-600); font-weight: 600; }
+.plan-notes { margin: 0 8px; border: 1px dashed var(--line); border-radius: 8px; background: var(--n-50); padding: 7px 9px; font: 12px/1.45 "Inter", sans-serif; color: var(--text-soft); resize: vertical; }
+.plan-notes:focus { outline: none; border-style: solid; border-color: var(--p-400); background: #fff; }
+.room-scroll { overflow: hidden; border-radius: 14px; }
+.room-scroll.zoomed { overflow: auto; box-shadow: inset 0 0 0 1px var(--line); }
+.zoom-controls { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); overflow: hidden; }
+.zoom-controls button { border: 0; background: transparent; height: 32px; min-width: 32px; display: grid; place-items: center; color: var(--n-600); font-size: 11px; font-weight: 700; }
+.zoom-controls button:hover:not(:disabled) { background: var(--n-100); }
+.zoom-controls button:disabled { opacity: .35; }
+.zoom-value { padding: 0 6px; border-left: 1px solid var(--line-soft) !important; border-right: 1px solid var(--line-soft) !important; }
+.room-viewport.is-full .room-scroll { height: auto !important; max-height: calc(100vh - 110px); }
+@media (max-width: 1100px) { .planner-info-row { grid-template-columns: 1fr; } }
