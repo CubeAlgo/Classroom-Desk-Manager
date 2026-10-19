@@ -18,7 +18,7 @@ const ROOM_W = 1200;
 const GAP_X = 36;
 const GAP_Y = 44;
 const FOOTPRINTS: Record<number, { w: number; h: number }> = {
-  1: { w: 110, h: 104 }, 2: { w: 200, h: 104 }, 3: { w: 250, h: 150 }, 4: { w: 250, h: 150 }, 5: { w: 250, h: 200 },
+  1: { w: 110, h: 104 }, 2: { w: 200, h: 104 }, 3: { w: 270, h: 150 }, 4: { w: 270, h: 150 }, 5: { w: 270, h: 200 },
 };
 
 export function Planner({
@@ -35,7 +35,10 @@ export function Planner({
   const [arrangements, setArrangements] = useState<Arrangement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentGroups, setCurrentGroups] = useState<Student[][]>([]);
-  const [savedLayout] = useState(() => getRoomLayout(classId));
+  const [savedLayout] = useState(() => {
+    const l = getRoomLayout(classId);
+    return l && l.v === 2 && l.size === layoutSize(classData?.layout ?? "pairs") ? l : null;
+  });
   const [deskPositions, setDeskPositions] = useState<DeskPosition[]>(savedLayout?.desks ?? []);
   const [currentRotations, setCurrentRotations] = useState<number[]>(savedLayout?.rotations ?? []);
   const [plans, setPlans] = useState<SavedPlan[]>(() => listPlans(classId));
@@ -84,7 +87,10 @@ export function Planner({
   const size = layoutSize(layout);
   const foot = FOOTPRINTS[size] ?? FOOTPRINTS[2];
   const canvasWidth = () => ROOM_W;
-  const gridCols = (count: number) => Math.max(1, Math.min(count, Math.floor((canvasWidth() - 40 + GAP_X) / (foot.w + GAP_X))));
+  const gridCols = (count: number) => {
+    const max = Math.max(1, Math.floor((canvasWidth() - 40 + GAP_X) / (foot.w + GAP_X)));
+    return Math.max(1, Math.min(count, Math.ceil(count / Math.ceil(count / max))));
+  };
   const topPx = teacherDeskAtFront ? 96 : 36;
   const canvasHeight = (count: number) => Math.max(560, topPx + Math.ceil(count / gridCols(count)) * (foot.h + GAP_Y) + (teacherDeskAtFront ? 40 : 110));
 
@@ -92,9 +98,12 @@ export function Planner({
     const W = canvasWidth();
     const cols = gridCols(count);
     const H = canvasHeight(count);
-    const offX = (W - (cols * foot.w + (cols - 1) * GAP_X)) / 2;
+    const rowOffset = (row: number) => {
+      const inRow = Math.min(cols, count - row * cols);
+      return (W - (inRow * foot.w + (inRow - 1) * GAP_X)) / 2;
+    };
     return Array.from({ length: count }, (_, i) => ({
-      x: ((offX + (i % cols) * (foot.w + GAP_X)) / W) * 100,
+      x: ((rowOffset(Math.floor(i / cols)) + (i % cols) * (foot.w + GAP_X)) / W) * 100,
       y: ((topPx + Math.floor(i / cols) * (foot.h + GAP_Y)) / H) * 100,
     }));
   };
@@ -104,10 +113,10 @@ export function Planner({
     const cols = gridCols(count);
     if (size < 3 || cols < 3) return 0;
     const c = gi % cols;
-    return c === 0 ? 10 : c === cols - 1 ? -10 : 0;
+    return c === 0 ? 8 : c === cols - 1 ? -8 : 0;
   };
   const withRotations = (a: Arrangement): Arrangement => ({
-    ...a, rotations: a.groups.map((_, gi) => rotationsRef.current[gi] ?? defaultRotation(gi, a.groups.length)),
+    ...a, rotations: a.groups.map((_, gi) => (rotationsRef.current.length === a.groups.length ? rotationsRef.current[gi] : undefined) ?? defaultRotation(gi, a.groups.length)),
   });
 
   const doGenerate = useCallback(() => {
@@ -133,9 +142,8 @@ export function Planner({
       setSelectedId(rotated[0].id);
       setCurrentGroups(rotated[0].groups);
       setCurrentRotations(rotated[0].rotations);
-      setDeskPositions((prev) =>
-        results[0].groups.map((_, gi) => prev[gi] ?? buildInitialPositions(results[0].groups.length)[gi])
-      );
+      const n = rotated[0].groups.length;
+      setDeskPositions((prev) => (prev.length === n ? prev : buildInitialPositions(n)));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout, teacherDeskAtFront]);
@@ -149,9 +157,7 @@ export function Planner({
     setSelectedId(a.id);
     setCurrentGroups(a.groups);
     setCurrentRotations(a.rotations);
-    setDeskPositions((prev) =>
-      a.groups.map((_, gi) => prev[gi] ?? buildInitialPositions(a.groups.length)[gi])
-    );
+    setDeskPositions((prev) => (prev.length === a.groups.length ? prev : buildInitialPositions(a.groups.length)));
   };
 
   const handleToggleLock = (studentId: string) => {
@@ -217,13 +223,13 @@ export function Planner({
     if (prevFront.current === teacherDeskAtFront) return;
     prevFront.current = teacherDeskAtFront;
     setTeacherDeskY(teacherDeskAtFront ? TEACHER_FRONT_Y : TEACHER_BACK_Y);
-    setDeskPositions(getRoomLayout(classId)?.desks ?? []);
+    setDeskPositions(savedLayout?.desks ?? []);
     doGenerate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teacherDeskAtFront]);
 
   const flash = (msg: string) => { setNotice(msg); setTimeout(() => setNotice(""), 2600); };
-  const currentLayout = () => ({ desks: currentGroups.map((_, gi) => deskPositions[gi] || buildInitialPositions(currentGroups.length)[gi]), teacher: { x: teacherDeskX, y: teacherDeskY }, rotations: currentRotations });
+  const currentLayout = () => ({ desks: currentGroups.map((_, gi) => deskPositions[gi] || buildInitialPositions(currentGroups.length)[gi]), teacher: { x: teacherDeskX, y: teacherDeskY }, rotations: currentRotations, v: 2, size });
 
   const handleSaveLayout = () => { saveRoomLayout(classId, currentLayout()); flash("Room layout saved — new plans will use it"); };
 

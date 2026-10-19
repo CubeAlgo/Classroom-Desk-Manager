@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { musicController } from "../music";
+import { ChevronDown, School, UserPlus, Settings2, LayoutGrid, Move, Save, Users, Copy } from "lucide-react";
 import type { Page } from "../App";
 
 const KIDS = ["Mia", "Leo", "Ava", "Sam", "Zoe", "Max", "Ivy", "Ben", "Ella", "Kai", "Lily", "Noah", "Ruby", "Eli", "Nora", "Finn"];
@@ -60,6 +61,36 @@ function Testimonials() {
   );
 }
 
+const HOW_TO = [
+  { icon: School, color: "mint", title: "Create a class", text: "My classes → New class. Name it, pick 1s, pairs, 3s, 4s or 5s, and where your desk sits." },
+  { icon: UserPlus, color: "sky", title: "Add students", text: "Type a name and press Enter, or paste a whole list at once." },
+  { icon: Settings2, color: "grape", title: "Set student needs", text: "Tap the gear next to a name: visibility, hearing, behaviour, ESL, near the teacher, keep apart or together." },
+  { icon: LayoutGrid, color: "sun", title: "See seating arrangements", text: "Compare five scored options. Each one says in a line why it scored that way." },
+  { icon: Move, color: "coral", title: "Fine-tune the room", text: "Drag tables, students and your desk. Click a seat to lock it. Use Full screen for a bigger view." },
+  { icon: Save, color: "mint", title: "Save plans & layout", text: "Name and save plans to reopen later. Save room layout to keep your desk setup for every new plan." },
+  { icon: Users, color: "sky", title: "Group Maker", text: "Pick a class and group size to get balanced groups. Drag students between groups." },
+  { icon: Copy, color: "grape", title: "Split classes", text: "Tick students, press ⌘C / Ctrl+C, open another class and press ⌘V / Ctrl+V." },
+];
+
+function HowTo() {
+  return (
+    <section className="howto" id="how-to" data-testid="howto-section">
+      <span className="quote-label howto-label">How to use Deskly</span>
+      <h2>Up and running in minutes.</h2>
+      <div className="howto-grid">
+        {HOW_TO.map((h, i) => (
+          <article key={h.title} className="howto-card" data-testid={`howto-step-${i}`}>
+            <span className={`howto-icon av-${h.color}`}><h.icon size={20} /></span>
+            <span className="howto-num">{String(i + 1).padStart(2, "0")}</span>
+            <h3>{h.title}</h3>
+            <p>{h.text}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: string) => void }) {
   return (
     <div className="site-shell">
@@ -71,7 +102,7 @@ export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: strin
             <h1 data-testid="home-headline">Your class. <em>Perfectly</em> seated.</h1>
             <p>Happy tables, calm classrooms. Seating plans in seconds.</p>
             <div className="home-cta">
-              <button className="text-button filled big" data-testid="home-open-planner-btn" onClick={() => onNavigate("hub")}>Open Desk Planner <span>→</span></button>
+              <button className="text-button filled big" data-testid="home-open-planner-btn" onClick={() => onNavigate("hub")}>Open Deskly <span>→</span></button>
               <button className="text-button outlined big" data-testid="home-open-groupmaker-btn" onClick={() => onNavigate("groupmaker")}>Try Group Maker</button>
             </div>
           </div>
@@ -79,6 +110,10 @@ export function Tools({ onNavigate }: { onNavigate: (page: Page, classId?: strin
         </section>
 
         <Testimonials />
+        <button className="howto-jump" data-testid="howto-jump-btn" onClick={() => document.getElementById("how-to")?.scrollIntoView({ behavior: "smooth" })}>
+          How to use Deskly <ChevronDown size={18} />
+        </button>
+        <HowTo />
         <p className="local-note">Your classes and room plans stay in this browser, on this device.</p>
       </main>
     </div>
@@ -108,7 +143,7 @@ export function MusicToggle() {
 
 export function SiteHeader({ active, onNavigate }: { active: "tools" | "classes"; onNavigate: (page: Page, classId?: string) => void }) {
   return <header className="site-header">
-    <button className="brand-lockup" data-testid="brand-home-btn" onClick={() => onNavigate("tools")}><span className="brand-mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="9" width="18" height="6" rx="2" fill="#f7f4ec" /><circle cx="7.5" cy="5" r="2.2" fill="#f2b632" /><circle cx="16.5" cy="5" r="2.2" fill="#f2785c" /><circle cx="7.5" cy="19" r="2.2" fill="#4a9be8" /><circle cx="16.5" cy="19" r="2.2" fill="#3fb68b" /></svg></span><span className="brand-name">Desk Planner</span></button>
+    <button className="brand-lockup" data-testid="brand-home-btn" onClick={() => onNavigate("tools")}><span className="brand-mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="9" width="18" height="6" rx="2" fill="#f7f4ec" /><circle cx="7.5" cy="5" r="2.2" fill="#f2b632" /><circle cx="16.5" cy="5" r="2.2" fill="#f2785c" /><circle cx="7.5" cy="19" r="2.2" fill="#4a9be8" /><circle cx="16.5" cy="19" r="2.2" fill="#3fb68b" /></svg></span><span className="brand-name">Deskly</span></button>
     <nav className="site-nav"><button data-testid="nav-tools-btn" className={active === "tools" ? "active" : ""} onClick={() => onNavigate("tools")}><span>▦</span> Tools</button><button data-testid="nav-classes-btn" className={active === "classes" ? "active" : ""} onClick={() => onNavigate("hub")}><span>♧</span> My classes</button></nav>
     <div className="header-right">
       <MusicToggle />

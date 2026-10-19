@@ -1,6 +1,6 @@
 // Saved seating plans and room layouts — stored in this browser.
 export interface DeskPosition { x: number; y: number; }
-export interface RoomLayout { desks: DeskPosition[]; teacher: DeskPosition; rotations?: number[]; }
+export interface RoomLayout { desks: DeskPosition[]; teacher: DeskPosition; rotations?: number[]; v?: number; size?: number; }
 export interface SavedPlan {
   id: string;
   classId: string;

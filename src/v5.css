@@ -100,3 +100,20 @@ kbd { font: 700 10px "Inter", sans-serif; padding: 2px 5px; border-radius: 5px; 
 .room-viewport.is-full .room-toolbar { width: 100%; }
 .group-col { gap: 10px; }
 .table-container.group-container { gap: 10px; }
+
+/* ── How to ────────────────────────────────────────────────── */
+.howto-jump { display: flex; align-items: center; gap: 6px; margin: 28px auto 0; border: 0; background: transparent; font-size: 14px; font-weight: 700; color: var(--p-700); }
+.howto-jump svg { animation: bob 1.6s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+.howto { margin-top: 56px; scroll-margin-top: 24px; }
+.howto-label { color: var(--coral); }
+.howto h2 { font-size: 34px; margin: 10px 0 24px; }
+.howto-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.howto-card { position: relative; padding: 22px 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); transition: transform .2s, box-shadow .2s; }
+.howto-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.howto-icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; }
+.howto-num { position: absolute; top: 20px; right: 20px; font: 700 12px "Inter", sans-serif; color: var(--n-300); }
+.howto-card h3 { font-size: 17px; margin: 16px 0 6px; }
+.howto-card p { font-size: 13px; line-height: 1.55; color: var(--text-soft); }
+@media (max-width: 1000px) { .howto-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .howto-grid { grid-template-columns: 1fr; } }
