@@ -4,7 +4,7 @@ import { fromRow, generateArrangements, rescoreGroups, getCapacities, type Stude
 import { VIS_COLORS, BEH_COLORS } from "../lib";
 import type { Page } from "../App";
 import { SiteHeader } from "./Tools";
-import { KidAvatar, parseAvatar } from "./KidAvatar";
+import { parseAvatar } from "./KidAvatar";
 import { RoomViewport } from "./RoomViewport";
 import { layoutSize } from "../lib";
 import { getRoomLayout, saveRoomLayout, listPlans, savePlan, deletePlan, type SavedPlan } from "../plans";
@@ -328,6 +328,43 @@ export function Planner({
             )}
           </div>
           </RoomViewport>
+          <div className="planner-info-row" data-testid="planner-info-row">
+            <KeyPanel locked={currentGroups.flat().filter((st) => lockedIds.has(st.id))} conflicts={conflictPairs(currentGroups, ec)} />
+            <section className="right-panel plans-panel" data-testid="saved-plans-panel">
+              <div className="right-panel-head"><h3>Saved plans</h3><span className="count-pill">{plans.length}</span></div>
+              <div className="plan-save-row">
+                <input className="text-input" data-testid="plan-name-input" value={planName} onChange={(e) => setPlanName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSavePlan()} placeholder="Name this plan, e.g. Week 3" />
+                <button className="text-button filled" data-testid="save-plan-btn" onClick={handleSavePlan} disabled={!currentGroups.length}>Save</button>
+              </div>
+              {plans.map((p, i) => (
+                <div key={p.id} className="plan-row" data-testid={`saved-plan-${i}`}>
+                  <button className="plan-open" data-testid={`load-plan-btn-${i}`} onClick={() => handleLoadPlan(p)}>
+                    <b>{p.name}</b><small>{new Date(p.createdAt).toLocaleDateString()}</small>
+                  </button>
+                  <button className="delete-inline" data-testid={`delete-plan-btn-${i}`} onClick={() => handleDeletePlan(p.id)} aria-label="Delete plan">×</button>
+                </div>
+              ))}
+            </section>
+            <section className="right-panel">
+              <div className="right-panel-head">
+                <h3>Why this score?</h3>
+              </div>
+              {insight ? (
+                <>
+                  <div className={`insight-score-display tier-text-${tier(insight.score)}`}>{insight.score}<small>/100</small></div>
+                  <p className="insight-summary" data-testid="planner-insight-summary">{selected?.summary}</p>
+                  <div className="insight-meters">
+                    <Meter label="Front-seat needs" value={insight.visibility} />
+                    <Meter label="Calm tables" value={insight.behavior} />
+                  </div>
+                  <p className="insight-note">Click a seat to lock it · drag the teacher's desk anywhere</p>
+                </>
+              ) : (
+                <p className="muted-text">Select a candidate above to see what was prioritized.</p>
+              )}
+            </section>
+          </div>
         </div>
 
         <div className="planner-right-col">
@@ -354,41 +391,6 @@ export function Planner({
             )}
           </section>
 
-          <section className="right-panel">
-            <div className="right-panel-head">
-              <h3>Why this score?</h3>
-            </div>
-            {insight ? (
-              <>
-                <div className={`insight-score-display tier-text-${tier(insight.score)}`}>{insight.score}<small>/100</small></div>
-                <p className="insight-summary" data-testid="planner-insight-summary">{selected?.summary}</p>
-                <div className="insight-meters">
-                  <Meter label="Front-seat needs" value={insight.visibility} />
-                  <Meter label="Calm tables" value={insight.behavior} />
-                </div>
-                <p className="insight-note">Click a seat to lock it · drag the teacher's desk anywhere</p>
-              </>
-            ) : (
-              <p className="muted-text">Select a candidate above to see what was prioritized.</p>
-            )}
-          </section>
-          <section className="right-panel plans-panel" data-testid="saved-plans-panel">
-            <div className="right-panel-head"><h3>Saved plans</h3><span className="count-pill">{plans.length}</span></div>
-            <div className="plan-save-row">
-              <input className="text-input" data-testid="plan-name-input" value={planName} onChange={(e) => setPlanName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSavePlan()} placeholder="Name this plan, e.g. Week 3" />
-              <button className="text-button filled" data-testid="save-plan-btn" onClick={handleSavePlan} disabled={!currentGroups.length}>Save</button>
-            </div>
-            {plans.map((p, i) => (
-              <div key={p.id} className="plan-row" data-testid={`saved-plan-${i}`}>
-                <button className="plan-open" data-testid={`load-plan-btn-${i}`} onClick={() => handleLoadPlan(p)}>
-                  <b>{p.name}</b><small>{new Date(p.createdAt).toLocaleDateString()}</small>
-                </button>
-                <button className="delete-inline" data-testid={`delete-plan-btn-${i}`} onClick={() => handleDeletePlan(p.id)} aria-label="Delete plan">×</button>
-              </div>
-            ))}
-          </section>
-          <KeyPanel locked={currentGroups.flat().filter((st) => lockedIds.has(st.id))} conflicts={conflictPairs(currentGroups, ec)} />
         </div>
       </div>
     </div>
@@ -595,7 +597,7 @@ function DraggableTableGroup({
         style={seatDragOver === si ? { outline: "2px dashed #3a8c5c", outlineOffset: "2px" } : undefined}
       >
         <div className="seat-inner">
-          <span className="seat-name" title={student.name}>{parseAvatar(student.avatar).animal && <KidAvatar avatar={`|${parseAvatar(student.avatar).animal}`} fallback="" size={18} className="seat-avatar" />}{shortName(student.name)}</span>
+          <span className="seat-name" title={student.name}>{shortName(student.name)}</span>
           <div className="seat-badges">
             <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
             <span className="badge" style={{ background: BEH_COLORS[student.behavior] + "20", color: BEH_COLORS[student.behavior] }} title={`Behavior: ${student.behavior}`}>B</span>

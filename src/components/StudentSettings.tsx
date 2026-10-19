@@ -1,6 +1,6 @@
 import type { StudentRow, ConstraintRow, ConstraintStrength, Level, StudentPatch } from "../db";
 import { VIS_LABELS, BEH_LABELS, VIS_COLORS, BEH_COLORS, HEAR_LABELS } from "../lib";
-import { AVATAR_COLORS, AVATAR_ANIMALS, parseAvatar, KidAvatar } from "./KidAvatar";
+import { AVATAR_COLORS, parseAvatar } from "./KidAvatar";
 
 export function GearIcon({ size = 16 }: { size?: number }) {
   return (
@@ -66,24 +66,16 @@ function PeerPicker({ title, hint, student, students, links, onToggle, onStrengt
 }
 
 function AvatarPicker({ avatar, onChange }: { avatar?: string; onChange: (a: string) => void }) {
-  const { color, animal } = parseAvatar(avatar);
-  const set = (c: string, a: string) => onChange(c || a ? `${c}|${a}` : "");
+  const { color } = parseAvatar(avatar);
+  const set = (c: string) => onChange(c ? `${c}|` : "");
   return (
     <div className="drawer-section">
-      <span className="field-label">Seat colour &amp; icon <em className="optional">optional</em></span>
+      <span className="field-label">Seat colour <em className="optional">optional</em></span>
       <p className="drawer-hint">The colour fills this student's whole seat on the map.</p>
       <div className="avatar-row">
-        <button className={`swatch none ${!color ? "selected" : ""}`} data-testid="avatar-color-none" onClick={() => set("", animal)} aria-label="No colour" />
+        <button className={`swatch none ${!color ? "selected" : ""}`} data-testid="avatar-color-none" onClick={() => set("")} aria-label="No colour" />
         {AVATAR_COLORS.map((c) => (
-          <button key={c} className={`swatch av-${c} ${color === c ? "selected" : ""}`} data-testid={`avatar-color-${c}`} onClick={() => set(c, animal)} aria-label={c} />
-        ))}
-      </div>
-      <div className="avatar-row">
-        <button className={`animal-btn ${!animal ? "selected" : ""}`} data-testid="avatar-animal-none" onClick={() => set(color, "")}>None</button>
-        {Object.keys(AVATAR_ANIMALS).map((a) => (
-          <button key={a} className={`animal-btn ${animal === a ? "selected" : ""}`} data-testid={`avatar-animal-${a}`} onClick={() => set(color, a)} aria-label={a}>
-            <KidAvatar avatar={`${color}|${a}`} fallback="" size={26} />
-          </button>
+          <button key={c} className={`swatch av-${c} ${color === c ? "selected" : ""}`} data-testid={`avatar-color-${c}`} onClick={() => set(c)} aria-label={c} />
         ))}
       </div>
     </div>
