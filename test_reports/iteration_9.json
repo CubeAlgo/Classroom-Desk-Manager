@@ -1,0 +1,22 @@
+{
+  "summary": "Frontend-only test of the Deskly rename, the How-to section and the seating layout fix. Branding passes: page title is 'Deskly — Classroom Seating Made Simple', the header shows Deskly, the home CTA reads 'Open Deskly', the hub kicker reads 'Deskly / Your workspace', and no 'Desk Planner' text is left. howto-jump-btn scrolls to the bottom of the page with #how-to in view, and there are 8 steps (howto-step-0..7). Layout: I tested threes, fours and groups with 25, 28 and 30 students at 1440x860 and 1280x720 (12 maps). On every map, no tables overlap and all tables are inside #classroom-canvas. Rows are balanced (6 groups -> 3+3, 9 -> 3+3+3) and incomplete rows are centered (a single table has margins of about 464/474px). Regenerating 3 times, all 5 seating options, and the desk toggle front->back->front all kept tables non-overlapping, and the teacher desk moved correctly. Stale-state check passes: in a pairs class (28 students) I dragged a table, saved the room layout, then switched via Edit setup to fours -> groups -> fours -> pairs -> threes. The fours, groups and threes maps had no overlap and ignored the old pairs layout. Back in pairs, the saved dragged position came back as expected. One bug: incomplete rows tilt wrongly.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Planner defaultRotation", "issue": "Tilt is worked out from gi % cols, not from how many tables are actually in the row. A single table in the last row (fours 28 -> 7 tables, threes 30 -> 10 tables) tilts 8deg, and a 2-table last row (groups 25) tilts [8, 0]. The spec says only the first and last tables in rows with at least 3 tables should tilt. A lone, centered, tilted table looks odd.", "selector": ".table-group (last row)", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Classroom map", "issues": ["Rows sit about 9px off center (left margin 159px vs right 168px). Cosmetic."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": ["Fix defaultRotation: work out inRow = min(cols, count - row*cols) for the table's row, and return 0 unless inRow >= 3; then tilt the first table of the row 8 and the last -8 (based on the position within that row)."],
+  "critical_code_review_comments": ["withRotations reuses rotationsRef.current whenever its length matches the group count. A layout change that ends up with the same number of groups (for example threes 30 = 10 tables vs pairs 20 = 10 tables) would carry old rotations over. The Planner remounts per class/layout, so the risk is low."],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "95%"},
+  "seed_data_creation": "TEST9_* classes in the test browser's localStorage",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Overlap check uses offsetLeft/Top/Width/Height of .table-group (unrotated) and parses the rotation from style.transform. ROOM_W caps grids at 3 columns for sizes 3-5."
+}

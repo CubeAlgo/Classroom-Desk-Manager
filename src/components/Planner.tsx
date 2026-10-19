@@ -113,7 +113,9 @@ export function Planner({
     const cols = gridCols(count);
     if (size < 3 || cols < 3) return 0;
     const c = gi % cols;
-    return c === 0 ? 8 : c === cols - 1 ? -8 : 0;
+    const inRow = Math.min(cols, count - Math.floor(gi / cols) * cols);
+    if (inRow < 3) return 0;
+    return c === 0 ? 8 : c === inRow - 1 ? -8 : 0;
   };
   const withRotations = (a: Arrangement): Arrangement => ({
     ...a, rotations: a.groups.map((_, gi) => (rotationsRef.current.length === a.groups.length ? rotationsRef.current[gi] : undefined) ?? defaultRotation(gi, a.groups.length)),
