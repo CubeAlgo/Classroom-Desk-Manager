@@ -47,3 +47,4 @@ Existing Vite + React + TS classroom Desk Planner (from Bolt, Supabase backend).
 - Balanced/centered table rows, stale layout ignored (RoomLayout v2 + size), tilt only edge tables in rows of 3+
 - Student colour fills whole seat (map + Group Maker)
 - Iteration 10: mascots removed (colour only), tinted seat badges white w/ level colours, info row (key/plans/score) below map
+- Iteration 11: Why-this-score back in right col; Saved plans wider w/ comments (notes); map zoom (pinch/ctrl+wheel, +/- buttons, 100-300%)

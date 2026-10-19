@@ -60,7 +60,7 @@ export function RoomViewport({ width, height, actions, children }: { width: numb
       e.preventDefault();
       const r = sc.getBoundingClientRect();
       setZoom((z) => {
-        const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * Math.exp(-e.deltaY * 0.01)));
+        const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * Math.exp(-Math.max(-40, Math.min(40, e.deltaY)) * 0.006)));
         anchor.current = { fx: (sc.scrollLeft + e.clientX - r.left) / sc.scrollWidth, fy: (sc.scrollTop + e.clientY - r.top) / sc.scrollHeight, mx: e.clientX - r.left, my: e.clientY - r.top };
         return next;
       });
