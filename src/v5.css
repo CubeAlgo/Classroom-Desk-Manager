@@ -117,3 +117,18 @@ kbd { font: 700 10px "Inter", sans-serif; padding: 2px 5px; border-radius: 5px; 
 .howto-card p { font-size: 13px; line-height: 1.55; color: var(--text-soft); }
 @media (max-width: 1000px) { .howto-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .howto-grid { grid-template-columns: 1fr; } }
+
+/* ── Coloured seats ───────────────────────────────────────── */
+.seat.seat-tint { border-color: transparent; color: #fff; box-shadow: 0 3px 0 rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08); }
+.seat.seat-tint .seat-name { color: #fff; }
+.seat.seat-tint .badge { background: rgba(255,255,255,.28) !important; color: #fff !important; }
+.seat.seat-tint .seat-avatar { background: rgba(255,255,255,.25) !important; color: #fff !important; }
+.seat.tint-coral { background: var(--coral); }
+.seat.tint-sun { background: var(--sun); }
+.seat.tint-mint { background: var(--mint); }
+.seat.tint-sky { background: var(--sky); }
+.seat.tint-grape { background: var(--grape); }
+.seat.tint-rose { background: var(--rose); }
+.seat.seat-tint.locked { box-shadow: 0 0 0 3px var(--green), 0 4px 12px rgba(0,0,0,.1); }
+.seat.seat-tint.conflict-hard { box-shadow: 0 0 0 3px var(--red); }
+.seat.seat-tint.conflict-soft { box-shadow: 0 0 0 3px var(--amber); }

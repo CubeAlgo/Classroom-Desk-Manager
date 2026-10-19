@@ -4,7 +4,7 @@ import { fromRow, generateArrangements, rescoreGroups, getCapacities, type Stude
 import { VIS_COLORS, BEH_COLORS } from "../lib";
 import type { Page } from "../App";
 import { SiteHeader } from "./Tools";
-import { KidAvatar } from "./KidAvatar";
+import { KidAvatar, parseAvatar } from "./KidAvatar";
 import { RoomViewport } from "./RoomViewport";
 import { layoutSize } from "../lib";
 import { getRoomLayout, saveRoomLayout, listPlans, savePlan, deletePlan, type SavedPlan } from "../plans";
@@ -578,11 +578,12 @@ function DraggableTableGroup({
   const renderSeat = (student: Student, si: number) => {
     const isLocked = lockedIds.has(student.id);
     const conflict = conflictMap.get(student.id);
+    const tint = parseAvatar(student.avatar).color;
     return (
       <div
         key={student.id}
         data-testid={`seat-${groupIndex}-${si}`}
-        className={`seat ${isLocked ? "locked" : ""} ${conflict ? `conflict-${conflict}` : ""}`}
+        className={`seat ${isLocked ? "locked" : ""} ${conflict ? `conflict-${conflict}` : ""} ${tint ? `seat-tint tint-${tint}` : ""}`}
         draggable={!isLocked}
         onDragStart={(e) => { e.stopPropagation(); handleSeatDragStart(si); }}
         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setSeatDragOver(si); }}
@@ -594,7 +595,7 @@ function DraggableTableGroup({
         style={seatDragOver === si ? { outline: "2px dashed #3a8c5c", outlineOffset: "2px" } : undefined}
       >
         <div className="seat-inner">
-          <span className="seat-name" title={student.name}>{student.avatar && <KidAvatar avatar={student.avatar} fallback="" size={18} className="seat-avatar" />}{shortName(student.name)}</span>
+          <span className="seat-name" title={student.name}>{parseAvatar(student.avatar).animal && <KidAvatar avatar={`|${parseAvatar(student.avatar).animal}`} fallback="" size={18} className="seat-avatar" />}{shortName(student.name)}</span>
           <div className="seat-badges">
             <span className="badge" style={{ background: VIS_COLORS[student.visibility] + "20", color: VIS_COLORS[student.visibility] }} title={`Visibility: ${student.visibility}`}>V</span>
             <span className="badge" style={{ background: BEH_COLORS[student.behavior] + "20", color: BEH_COLORS[student.behavior] }} title={`Behavior: ${student.behavior}`}>B</span>

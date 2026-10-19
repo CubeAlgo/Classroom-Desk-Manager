@@ -70,7 +70,8 @@ function AvatarPicker({ avatar, onChange }: { avatar?: string; onChange: (a: str
   const set = (c: string, a: string) => onChange(c || a ? `${c}|${a}` : "");
   return (
     <div className="drawer-section">
-      <span className="field-label">Map icon <em className="optional">optional</em></span>
+      <span className="field-label">Seat colour &amp; icon <em className="optional">optional</em></span>
+      <p className="drawer-hint">The colour fills this student's whole seat on the map.</p>
       <div className="avatar-row">
         <button className={`swatch none ${!color ? "selected" : ""}`} data-testid="avatar-color-none" onClick={() => set("", animal)} aria-label="No colour" />
         {AVATAR_COLORS.map((c) => (
