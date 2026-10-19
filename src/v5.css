@@ -165,3 +165,40 @@ kbd { font: 700 10px "Inter", sans-serif; padding: 2px 5px; border-radius: 5px; 
 .zoom-value { padding: 0 6px; border-left: 1px solid var(--line-soft) !important; border-right: 1px solid var(--line-soft) !important; }
 .room-viewport.is-full .room-scroll { height: auto !important; max-height: calc(100vh - 110px); }
 @media (max-width: 1100px) { .planner-info-row { grid-template-columns: 1fr; } }
+
+/* ── v12: use the full width, bigger type ─────────────────── */
+.home-main, .classes-main, .gm-main { max-width: min(1560px, 94vw); padding-left: 40px; padding-right: 40px; }
+.home-hero { grid-template-columns: 1fr 1.15fr; gap: 72px; }
+.home-hero h1 { font-size: clamp(52px, 6vw, 92px); }
+.home-hero-copy > p { font-size: 22px; max-width: 560px; }
+.text-button.big { padding: 16px 26px; font-size: 15px; }
+.hp-room { height: 440px; }
+.hp-seats b { width: 46px; font-size: 10px; padding: 5px 0; }
+.home-quote { max-width: 980px; }
+.home-quote blockquote { font-size: 30px; }
+.howto h2 { font-size: 40px; }
+.howto-card h3 { font-size: 19px; }
+.howto-card p { font-size: 14px; }
+
+.page-title-kicker { font-size: 18px; }
+.classes-heading h1 { font-size: 34px; }
+.class-list { gap: 14px; }
+.class-list-row { padding: 26px 30px; border-radius: 18px; }
+.class-row-copy h2 { font-size: 28px; }
+.row-kicker { font-size: 11px; }
+.class-row-copy p { font-size: 14px; }
+.class-row-actions .text-button { padding: 12px 20px; font-size: 14px; }
+.row-number { font-size: 18px; }
+
+.gm-intro h1 { font-size: 56px; }
+.gm-controls { align-items: center; padding: 26px 30px; gap: 28px; }
+.gm-class-info strong, .gm-class-info h2 { font-size: 30px; }
+.gm-size-buttons button { min-width: 52px; height: 46px; font-size: 16px; }
+.gm-candidates { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.gm-candidate { padding: 14px 16px; align-items: flex-start; }
+.gm-candidate-name { font-size: 15px; }
+.gm-candidate-copy small { font-size: 12px; }
+.gm-groups-header h3, .gm-groups-header h2 { font-size: 28px; }
+.gm-groups-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.gm-member-name { font-size: 15px; }
+@media (max-width: 1200px) { .gm-candidates { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
