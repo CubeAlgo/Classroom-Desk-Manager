@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { fetchClasses, fetchStudents, fetchConstraints, type ClassRow, type StudentRow, type ConstraintRow } from "../db";
 import { fromRow, generateArrangements, rescoreGroups, type Arrangement, type Student, type Constraint } from "../engine";
 import { tier, shortName } from "./Planner";
+import { parseAvatar } from "./KidAvatar";
 import { BEH_COLORS, layoutLabel } from "../lib";
 import { SiteHeader } from "./Tools";
 import type { Page } from "../App";
@@ -158,7 +159,7 @@ export function GroupMaker({ onNavigate, classId }: { onNavigate: (page: Page, c
                           <span className="gm-group-num">Group {gi + 1}</span>
                           <div className="gm-group-members">
                             {group.map((s, si) => (
-                              <div key={s.id} className="gm-member" draggable data-testid={`gm-member-${gi}-${si}`}
+                              <div key={s.id} className={`gm-member ${parseAvatar(s.avatar).color ? `seat-tint tint-${parseAvatar(s.avatar).color}` : ""}`} draggable data-testid={`gm-member-${gi}-${si}`}
                                 onDragStart={() => setDrag({ g: gi, i: si })}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => { e.stopPropagation(); moveMember(gi, si); }}>

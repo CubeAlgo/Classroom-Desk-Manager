@@ -1,0 +1,18 @@
+{
+  "summary": "Seat colour fill feature. Map: PASS. Alice (coral) seat = 'seat seat-tint tint-coral', bg rgb(242,120,92), white name; Bob (sky+cat) = tint-sky, bg rgb(74,155,232), white name, .seat-avatar present. V/B/H badges on tinted seats are rgba(255,255,255,.28) bg with white text. Uncoloured seats unchanged (white bg, dark text). Lock on a tinted seat: 'locked' class, 3px green box-shadow ring, lock badge, draggable=false. Unlocked tinted seat drag-swap works. Drawer label 'Seat colour & icon (optional)' with hint 'The colour fills this student's whole seat on the map.' PASS. Group Maker: FAIL. .gm-member elements get no tint class (all plain 'gm-member', bg rgb(248,246,240)) for the coral student.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [{"component": "GroupMaker member chip", "issue": "Coloured students are not tinted. GroupMaker.tsx L161 renders className=\"gm-member\" with no parseAvatar(s.avatar).color check, and v5.css has no .gm-member tint rules.", "selector": ".gm-member / gm-member-{gi}-{si}", "priority": "MEDIUM"}],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": ["GroupMaker.tsx: add `seat-tint tint-${color}` (or a gm-specific tint class) to .gm-member when parseAvatar(s.avatar).color is set. Add CSS for it: solid bg, white name, white translucent badge. Optionally show the animal icon too. Check that GroupMaker's student objects include the avatar field."],
+  "critical_code_review_comments": ["Planner.renderSeat calls parseAvatar(student.avatar) 3 times; compute it once."],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "75% (3/4 features)"},
+  "seed_data_creation": "none (localStorage, cleared)",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Nav testid is nav-tools-btn (not nav-tools). Close drawer by clicking student-settings-backdrop at position 10,10. In Group Maker, click the class name text, then gm-generate-btn."
+}

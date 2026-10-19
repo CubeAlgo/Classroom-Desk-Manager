@@ -132,3 +132,8 @@ kbd { font: 700 10px "Inter", sans-serif; padding: 2px 5px; border-radius: 5px; 
 .seat.seat-tint.locked { box-shadow: 0 0 0 3px var(--green), 0 4px 12px rgba(0,0,0,.1); }
 .seat.seat-tint.conflict-hard { box-shadow: 0 0 0 3px var(--red); }
 .seat.seat-tint.conflict-soft { box-shadow: 0 0 0 3px var(--amber); }
+.gm-member.seat-tint { border-color: transparent; color: #fff; }
+.gm-member.seat-tint .gm-member-name { color: #fff; }
+.gm-member.seat-tint .badge { background: rgba(255,255,255,.28) !important; color: #fff !important; }
+.gm-member.tint-coral { background: var(--coral); } .gm-member.tint-sun { background: var(--sun); } .gm-member.tint-mint { background: var(--mint); }
+.gm-member.tint-sky { background: var(--sky); } .gm-member.tint-grape { background: var(--grape); } .gm-member.tint-rose { background: var(--rose); }

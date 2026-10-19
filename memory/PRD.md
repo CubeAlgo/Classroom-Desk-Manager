@@ -41,3 +41,8 @@ Existing Vite + React + TS classroom Desk Planner (from Bolt, Supabase backend).
 - Map: V/B/H badges always; roomier auto layout (column count from footprint), vertical group tables w/ seats left/right, side columns tilted 10deg
 - Fixed 1200px to-scale room in RoomViewport (auto-fit scale + Full screen with Regenerate)
 - Engine: depth by grid row (cols param), uneven-size fix
+
+## Iteration 8-9
+- Renamed to Deskly; How-to section (8 steps) under testimonials with arrow jump
+- Balanced/centered table rows, stale layout ignored (RoomLayout v2 + size), tilt only edge tables in rows of 3+
+- Student colour fills whole seat (map + Group Maker)
