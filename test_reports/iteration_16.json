@@ -1,0 +1,26 @@
+{
+  "summary": "Re-check of v12 width/spacing (frontend only, live URL, hard reload). Width rule now ships: .home-main/.classes-main/.gm-main max-width min(1800px,96vw), so they are 1800px wide at 1920. Content after 32px padding = 90.4% of the viewport, just under the ~92% target, because the 1800px cap is hit before 96vw (1843px). No horizontal overflow. FAIL: at 800px the hero is still 2 columns (294px + 338px, preview to the right). FAIL: the Group Maker Generate button sits right after the size buttons (about x=716 in a card that ends at about x=1492), leaving a large empty area on the right. FAIL: .row-kicker is still 11px (v5.css:188).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Home hero @800px", "issue": "grid-template-columns stays '1fr 1.15fr'. There is no max-width media query after the v12 rule at v5.css:171, so the hero does not stack.", "selector": ".home-hero", "priority": "HIGH"},
+      {"component": "Group Maker controls", "issue": "The Generate button is not pushed to the right end. The flex row has no margin-left:auto or space-between, so about half the card is empty on the right.", "selector": "[data-testid=gm-generate-btn]", "priority": "MEDIUM"},
+      {"component": "Hub/GM row-kicker", "issue": "Font-size is 11px, not 12px (v5.css:188).", "selector": ".row-kicker", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [{"screen": "1920 layout", "issues": ["Content is 90.4% of the viewport (1800px cap minus 64px padding). For >=92%, raise the cap to about 1880px or use just 96vw."]}]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Add at the end of v5.css: @media (max-width: 900px) { .home-hero { grid-template-columns: 1fr; gap: 40px; } }",
+    "Add .gm-controls [data-testid=gm-generate-btn] (or its class) { margin-left: auto; } so the button sits at the right end",
+    "Change v5.css:188 to .row-kicker { font-size: 12px; }",
+    "Optional: max-width: min(1880px, 96vw) to reach the ~92% content target at 1920"
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "25% (1/4 partially: width ships but 90.4% < 92%; no overflow)"},
+  "seed_data_creation": "Class TEST_W16 with 10 students, stored in the browser's local storage (fresh context)",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The CSS is in /app/src/v5.css (Vite app, not frontend/). With only one class, Group Maker auto-selects it, so there is no gm-class-card to click. Classes live in browser local storage, so a fresh context has no row-kicker on the hub until you create a class."
+}
