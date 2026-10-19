@@ -346,7 +346,7 @@ export function Planner({
                 </div>
               ))}
             </section>
-            <section className="right-panel">
+            <section data-testid="planner-insight-panel" className="right-panel">
               <div className="right-panel-head">
                 <h3>Why this score?</h3>
               </div>

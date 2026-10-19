@@ -46,3 +46,4 @@ Existing Vite + React + TS classroom Desk Planner (from Bolt, Supabase backend).
 - Renamed to Deskly; How-to section (8 steps) under testimonials with arrow jump
 - Balanced/centered table rows, stale layout ignored (RoomLayout v2 + size), tilt only edge tables in rows of 3+
 - Student colour fills whole seat (map + Group Maker)
+- Iteration 10: mascots removed (colour only), tinted seat badges white w/ level colours, info row (key/plans/score) below map
