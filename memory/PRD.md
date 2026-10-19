@@ -48,3 +48,4 @@ Existing Vite + React + TS classroom Desk Planner (from Bolt, Supabase backend).
 - Student colour fills whole seat (map + Group Maker)
 - Iteration 10: mascots removed (colour only), tinted seat badges white w/ level colours, info row (key/plans/score) below map
 - Iteration 11: Why-this-score back in right col; Saved plans wider w/ comments (notes); map zoom (pinch/ctrl+wheel, +/- buttons, 100-300%)
+- Iteration 12: wider containers (min(1800px,96vw)) + bigger type on home/hub/group maker
